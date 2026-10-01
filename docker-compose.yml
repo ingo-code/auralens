@@ -1,7 +1,19 @@
 services:
   auralens:
-    build: .
+    build:
+      context: .
+      args:
+        NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
     ports:
       - "3100:3000"
     env_file:
       - .env.local
+    environment:
+      # Overrides NEXT_PUBLIC_SUPABASE_URL for server-side calls so the
+      # container can reach a local `supabase start` stack on the host.
+      # Not needed when NEXT_PUBLIC_SUPABASE_URL already points at a
+      # hosted Supabase project.
+      SUPABASE_URL: ${SUPABASE_URL:-http://host.docker.internal:54321}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

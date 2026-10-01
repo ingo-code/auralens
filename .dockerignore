@@ -9,3 +9,4 @@ README.md
 **/__tests__
 vitest.config.mts
 vitest.setup.ts
+supabase

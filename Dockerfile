@@ -5,6 +5,14 @@ RUN npm ci
 
 FROM node:24-alpine AS builder
 WORKDIR /app
+
+# Next.js inlines NEXT_PUBLIC_* vars into the client bundle at build time,
+# so they must be build args, not just runtime env vars.
+ARG NEXT_PUBLIC_SUPABASE_URL
+ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
+ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
+ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

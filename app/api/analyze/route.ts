@@ -4,6 +4,8 @@ import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { StyleAnalysisSchema } from "@/lib/analysis-schema";
 import { compressImageForAnalysis } from "@/lib/image-processing";
 import { checkRateLimit, getClientIdentifier } from "@/lib/rate-limit";
+import { createClient } from "@/lib/supabase/server";
+import { saveAnalysis } from "@/lib/analyses";
 
 export const runtime = "nodejs";
 
@@ -123,7 +125,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ report: response.parsed_output });
+    let persisted = false;
+    try {
+      const supabase = await createClient();
+      const { data: claims } = await supabase.auth.getClaims();
+      const userId = claims?.claims.sub;
+      if (userId) {
+        persisted = await saveAnalysis(supabase, userId, image.data, response.parsed_output);
+      }
+    } catch (persistError) {
+      console.error("Persistenz der Analyse übersprungen:", persistError);
+    }
+
+    return NextResponse.json({ report: response.parsed_output, persisted });
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
       console.error("Claude API Authentifizierungsfehler:", error.message);
