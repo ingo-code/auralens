@@ -164,6 +164,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Die Claude API ist derzeit nicht erreichbar." }, { status: 502 });
     }
     if (error instanceof Anthropic.AnthropicError) {
+      // The SDK throws this same generic error both for missing/invalid
+      // credentials and for a model response that fails structured-output
+      // validation (e.g. a malformed hex code) - distinguish by message so
+      // a transient parse hiccup isn't reported as a config problem.
+      if (error.message.includes("Failed to parse structured output")) {
+        console.error("Strukturierte Antwort ungültig:", error.message);
+        return NextResponse.json(
+          { error: "Die KI-Antwort war ungültig formatiert. Bitte versuche es erneut." },
+          { status: 502 }
+        );
+      }
       console.error("Anthropic SDK Konfigurationsfehler:", error.message);
       return NextResponse.json(
         { error: "Die Claude API ist nicht konfiguriert. Bitte ANTHROPIC_API_KEY in .env.local setzen." },

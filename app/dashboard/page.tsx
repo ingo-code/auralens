@@ -6,8 +6,14 @@ import type { StyleAnalysis } from "@/lib/analysis-schema";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: claims } = await supabase.auth.getClaims();
-  const userId = claims?.claims.sub;
+
+  let userId: string | undefined;
+  try {
+    const { data: claims } = await supabase.auth.getClaims();
+    userId = claims?.claims.sub;
+  } catch (error) {
+    console.error("Supabase-Sitzung konnte nicht geprüft werden:", error);
+  }
 
   if (!userId) {
     redirect("/login");

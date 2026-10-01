@@ -101,6 +101,21 @@ describe("POST /api/analyze", () => {
     expect(json.error).toMatch(/Unerwarteter Fehler/);
   });
 
+  it("meldet eine ungültige strukturierte Antwort als Parse-Fehler, nicht als Konfigurationsfehler", async () => {
+    const actual = await vi.importActual<typeof import("@anthropic-ai/sdk")>("@anthropic-ai/sdk");
+    parseMock.mockRejectedValueOnce(
+      new actual.AnthropicError("Failed to parse structured output: invalid hex")
+    );
+
+    const form = new FormData();
+    form.set("image", buildPngFile());
+    const res = await POST(buildRequest(form, { "x-forwarded-for": "1.1.1.5" }));
+
+    expect(res.status).toBe(502);
+    const json = await res.json();
+    expect(json.error).toMatch(/ungültig formatiert/);
+  });
+
   it("blockt nach Erreichen des Rate-Limits mit 429", async () => {
     parseMock.mockResolvedValue({ parsed_output: VALID_REPORT });
     const ip = "9.9.9.9";

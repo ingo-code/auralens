@@ -15,5 +15,10 @@ services:
       # Not needed when NEXT_PUBLIC_SUPABASE_URL already points at a
       # hosted Supabase project.
       SUPABASE_URL: ${SUPABASE_URL:-http://host.docker.internal:54321}
+      # host.docker.internal resolves to both an IPv4 and an IPv6 address on
+      # Docker Desktop, and the IPv6 route is unreachable in this setup -
+      # Node's dual-stack resolver intermittently tries it first and hangs.
+      # Forcing IPv4 first avoids that flaky path entirely.
+      NODE_OPTIONS: "--dns-result-order=ipv4first"
     extra_hosts:
       - "host.docker.internal:host-gateway"
