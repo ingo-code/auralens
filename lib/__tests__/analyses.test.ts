@@ -11,7 +11,7 @@ const REPORT: StyleAnalysis = {
     { hex: "#333333", name: "C" },
   ],
   emotions: ["Ruhe"],
-  midjourneyPrompt: "a calm gradient",
+  imagePrompt: "a calm gradient, highly detailed, 8k",
 };
 
 function buildSupabaseMock(options: {

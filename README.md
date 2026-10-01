@@ -1,6 +1,6 @@
 # AuraLens
 
-Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und Kreative. Bild hochladen → Claude Vision liefert einen strukturierten Report: visueller Stil, Farbpalette (Hex-Codes), vermittelte Emotionen und einen einsatzbereiten Midjourney-Prompt. Angemeldete Nutzer:innen bekommen jede Analyse automatisch in einer persönlichen Historie gespeichert.
+Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und Kreative. Bild hochladen → Claude Vision liefert einen strukturierten Report: visueller Stil, Farbpalette (Hex-Codes), vermittelte Emotionen und einen einsatzbereiten Bild-Prompt für Stable Diffusion/FLUX (kostenlos nutzbar, z. B. via Hugging Face Spaces). Angemeldete Nutzer:innen bekommen jede Analyse automatisch in einer persönlichen Historie gespeichert.
 
 ## Tech Stack
 

@@ -31,10 +31,14 @@ export const StyleAnalysisSchema = z.object({
     .min(2)
     .max(6)
     .describe("Emotionen bzw. Stimmungen, die das Bild vermittelt."),
-  midjourneyPrompt: z
+  imagePrompt: z
     .string()
     .describe(
-      "Ein einsatzbereiter Midjourney-Prompt, der Stil, Farbgebung, Stimmung und Motiv des Bildes einfängt, inkl. typischer Parameter wie --ar und --style."
+      "Ein einsatzbereiter Bildgenerierungs-Prompt im Stil von Stable Diffusion/FLUX: " +
+        "eine ausführliche, natürliche Beschreibung von Motiv, Stil, Lichtstimmung, Farbgebung " +
+        "und Komposition des Bildes, ergänzt um gängige Qualitäts-Schlagworte (z. B. 'highly " +
+        "detailed, professional photography, 8k'). Keine Midjourney-spezifischen Parameter wie " +
+        "--ar oder --stylize, da diese von Stable Diffusion/FLUX nicht unterstützt werden."
     ),
 });
 

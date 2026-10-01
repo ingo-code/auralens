@@ -29,8 +29,9 @@ const SYSTEM_PROMPT =
 const USER_PROMPT =
   "Analysiere den visuellen Stil, die dominante Farbpalette (als Hex-Codes) und die " +
   "vermittelten Emotionen dieses Bildes. Formuliere daraus außerdem einen " +
-  "einsatzbereiten Midjourney-Prompt, mit dem sich ein stilistisch ähnliches Bild " +
-  "erzeugen ließe.";
+  "einsatzbereiten Bildgenerierungs-Prompt für Stable Diffusion/FLUX (natürliche, " +
+  "detaillierte Beschreibung statt Parameter-Flags), mit dem sich ein stilistisch " +
+  "ähnliches Bild erzeugen ließe.";
 
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request.headers);

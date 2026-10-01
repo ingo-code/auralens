@@ -9,7 +9,7 @@ const VALID_REPORT = {
     { hex: "#FF8800", name: "Bernstein" },
   ],
   emotions: ["Ruhe", "Geborgenheit"],
-  midjourneyPrompt: "a calm minimalist gradient, soft light --ar 3:2 --style raw",
+  imagePrompt: "a calm minimalist gradient, soft natural light, highly detailed, 8k",
 };
 
 describe("StyleAnalysisSchema", () => {
@@ -39,9 +39,9 @@ describe("StyleAnalysisSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("lehnt fehlenden Midjourney-Prompt ab", () => {
+  it("lehnt fehlenden Bild-Prompt ab", () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { midjourneyPrompt: _midjourneyPrompt, ...withoutPrompt } = VALID_REPORT;
+    const { imagePrompt: _imagePrompt, ...withoutPrompt } = VALID_REPORT;
     const result = StyleAnalysisSchema.safeParse(withoutPrompt);
     expect(result.success).toBe(false);
   });

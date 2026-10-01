@@ -36,7 +36,7 @@ const VALID_REPORT = {
     { hex: "#FF8800", name: "Bernstein" },
   ],
   emotions: ["Ruhe", "Geborgenheit"],
-  midjourneyPrompt: "a calm minimalist gradient --ar 3:2",
+  imagePrompt: "a calm minimalist gradient, soft natural light, highly detailed, 8k",
 };
 
 function buildPngFile(name = "test.png") {

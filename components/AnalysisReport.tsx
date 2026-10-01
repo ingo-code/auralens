@@ -12,7 +12,7 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
 
   const copyPrompt = async () => {
     try {
-      await navigator.clipboard.writeText(report.midjourneyPrompt);
+      await navigator.clipboard.writeText(report.imagePrompt);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -76,7 +76,7 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
       <section>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">
-            Midjourney-Prompt
+            Bild-Prompt (Stable Diffusion / FLUX)
           </h2>
           <button
             type="button"
@@ -87,8 +87,12 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
           </button>
         </div>
         <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-zinc-800 bg-black/60 p-4 font-mono text-sm text-zinc-300">
-          {report.midjourneyPrompt}
+          {report.imagePrompt}
         </pre>
+        <p className="mt-2 text-xs text-zinc-500">
+          Funktioniert mit kostenlosen Tools wie Hugging Face Spaces (FLUX.1-schnell) oder lokal
+          über ComfyUI/Automatic1111.
+        </p>
       </section>
     </div>
   );
