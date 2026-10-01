@@ -76,7 +76,7 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
       <section>
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">
-            Bild-Prompt (Stable Diffusion / FLUX)
+            Bild-Prompt (ChatGPT)
           </h2>
           <button
             type="button"
@@ -90,8 +90,7 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
           {report.imagePrompt}
         </pre>
         <p className="mt-2 text-xs text-zinc-500">
-          Funktioniert mit kostenlosen Tools wie Hugging Face Spaces (FLUX.1-schnell) oder lokal
-          über ComfyUI/Automatic1111.
+          Direkt in ChatGPT einfügen (kostenlos mit Login nutzbar) und als Bild generieren lassen.
         </p>
       </section>
     </div>

@@ -29,9 +29,9 @@ const SYSTEM_PROMPT =
 const USER_PROMPT =
   "Analysiere den visuellen Stil, die dominante Farbpalette (als Hex-Codes) und die " +
   "vermittelten Emotionen dieses Bildes. Formuliere daraus außerdem einen " +
-  "einsatzbereiten Bildgenerierungs-Prompt für Stable Diffusion/FLUX (natürliche, " +
-  "detaillierte Beschreibung statt Parameter-Flags), mit dem sich ein stilistisch " +
-  "ähnliches Bild erzeugen ließe.";
+  "einsatzbereiten Bildgenerierungs-Prompt für ChatGPT (DALL-E 3) als direkte Anfrage " +
+  "in natürlicher, fließender Sprache (statt Parameter-Flags oder Schlagwortlisten), " +
+  "mit dem sich ein stilistisch ähnliches Bild erzeugen ließe.";
 
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request.headers);

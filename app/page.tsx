@@ -69,7 +69,7 @@ export default function Home() {
         </h1>
         <p className="mx-auto mt-4 max-w-xl text-balance text-zinc-400">
           Lade ein Bild hoch und erhalte in Sekunden einen KI-Report zu Stil, Farbpalette,
-          Emotionen und einem passenden Bild-Prompt für Stable Diffusion/FLUX.
+          Emotionen und einem passenden Bild-Prompt für ChatGPT.
         </p>
       </header>
 

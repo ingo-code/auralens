@@ -34,11 +34,12 @@ export const StyleAnalysisSchema = z.object({
   imagePrompt: z
     .string()
     .describe(
-      "Ein einsatzbereiter Bildgenerierungs-Prompt im Stil von Stable Diffusion/FLUX: " +
-        "eine ausführliche, natürliche Beschreibung von Motiv, Stil, Lichtstimmung, Farbgebung " +
-        "und Komposition des Bildes, ergänzt um gängige Qualitäts-Schlagworte (z. B. 'highly " +
-        "detailed, professional photography, 8k'). Keine Midjourney-spezifischen Parameter wie " +
-        "--ar oder --stylize, da diese von Stable Diffusion/FLUX nicht unterstützt werden."
+      "Ein einsatzbereiter Bildgenerierungs-Prompt für ChatGPT (DALL-E 3): eine klare, " +
+        "natürlich formulierte Beschreibung von Motiv, Stil, Lichtstimmung, Farbgebung und " +
+        "Komposition des Bildes in fließenden Sätzen, direkt als Anfrage an ChatGPT nutzbar " +
+        "(z. B. 'Erstelle ein Bild von...'). Keine Parameter-Flags (z. B. --ar, --stylize) und " +
+        "kein Keyword-Stacking wie '8k, highly detailed' - ChatGPT reagiert am besten auf " +
+        "natürliche Sprache statt Schlagwortlisten."
     ),
 });
 
