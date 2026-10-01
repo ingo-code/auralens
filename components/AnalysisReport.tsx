@@ -90,7 +90,8 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
           {report.imagePrompt}
         </pre>
         <p className="mt-2 text-xs text-zinc-500">
-          Direkt in ChatGPT einfügen (kostenlos mit Login nutzbar) und als Bild generieren lassen.
+          Für eine möglichst originalgetreue, fotorealistische Nachbildung optimiert. Direkt in
+          ChatGPT einfügen (kostenlos mit Login nutzbar) und als Bild generieren lassen.
         </p>
       </section>
     </div>

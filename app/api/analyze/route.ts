@@ -30,8 +30,11 @@ const USER_PROMPT =
   "Analysiere den visuellen Stil, die dominante Farbpalette (als Hex-Codes) und die " +
   "vermittelten Emotionen dieses Bildes. Formuliere daraus außerdem einen " +
   "einsatzbereiten Bildgenerierungs-Prompt für ChatGPT (DALL-E 3) als direkte Anfrage " +
-  "in natürlicher, fließender Sprache (statt Parameter-Flags oder Schlagwortlisten), " +
-  "mit dem sich ein stilistisch ähnliches Bild erzeugen ließe.";
+  "in natürlicher, fließender Sprache (statt Parameter-Flags oder Schlagwortlisten). " +
+  "Ziel des Prompts ist eine möglichst fotorealistische, originalgetreue Rekonstruktion " +
+  "dieses konkreten Bildes - beschreibe das exakte Motiv, die Position/Pose von Personen " +
+  "oder Objekten, den Bildausschnitt, Hintergrund, die Lichtrichtung sowie Texturen und " +
+  "Materialien so genau wie möglich, nicht nur Stimmung oder Stil.";
 
 export async function POST(request: NextRequest) {
   const clientId = getClientIdentifier(request.headers);

@@ -34,12 +34,16 @@ export const StyleAnalysisSchema = z.object({
   imagePrompt: z
     .string()
     .describe(
-      "Ein einsatzbereiter Bildgenerierungs-Prompt für ChatGPT (DALL-E 3): eine klare, " +
-        "natürlich formulierte Beschreibung von Motiv, Stil, Lichtstimmung, Farbgebung und " +
-        "Komposition des Bildes in fließenden Sätzen, direkt als Anfrage an ChatGPT nutzbar " +
-        "(z. B. 'Erstelle ein Bild von...'). Keine Parameter-Flags (z. B. --ar, --stylize) und " +
-        "kein Keyword-Stacking wie '8k, highly detailed' - ChatGPT reagiert am besten auf " +
-        "natürliche Sprache statt Schlagwortlisten."
+      "Ein einsatzbereiter Bildgenerierungs-Prompt für ChatGPT (DALL-E 3), dessen Ziel eine " +
+        "möglichst fotorealistische, originalgetreue Rekonstruktion des hochgeladenen Bildes " +
+        "ist - keine freie stilistische Neuinterpretation. Beschreibe konkret und detailliert " +
+        "das exakte Motiv (Personen/Objekte, Anzahl, Pose, Position im Bild), den Bildausschnitt " +
+        "und Kamerawinkel, den Hintergrund/die Umgebung, Lichtquelle und -richtung, Texturen und " +
+        "Materialien sowie die exakte Farbgebung - in natürlicher, fließender Sprache als direkte " +
+        "Anfrage an ChatGPT (z. B. 'Erstelle ein fotorealistisches Bild von...'). Keine " +
+        "Parameter-Flags (z. B. --ar, --stylize) und kein Keyword-Stacking wie '8k, highly " +
+        "detailed' - ChatGPT reagiert am besten auf natürliche, konkrete Sprache statt " +
+        "Schlagwortlisten oder vager Stimmungsbeschreibung."
     ),
 });
 
