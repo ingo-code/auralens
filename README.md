@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AuraLens
 
-## Getting Started
+Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und Kreative. Bild hochladen → Claude Vision liefert einen strukturierten Report: visueller Stil, Farbpalette (Hex-Codes), vermittelte Emotionen und einen einsatzbereiten Midjourney-Prompt.
 
-First, run the development server:
+## Tech Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Frontend & Backend:** Next.js (App Router), TypeScript, Tailwind CSS
+- **KI:** Anthropic Claude API (Vision) mit strukturierten JSON-Outputs (Zod-Schema)
+- **Bildverarbeitung:** `sharp` (serverseitige Kompression/Normalisierung vor dem API-Call)
+- **Tests:** Vitest + React Testing Library
+- **Deployment:** Docker (Multi-Stage-Build, Next.js `standalone` Output)
+
+## Architektur
+
+```
+app/page.tsx              Landing Page, Dropzone, Status-Handling
+app/api/analyze/route.ts  POST-Endpoint: Validierung → Rate-Limit → Kompression → Claude Vision → Report
+lib/analysis-schema.ts    Zod-Schema für den strukturierten Report (Single Source of Truth für Typen)
+lib/image-processing.ts   Bildkompression/-normalisierung via sharp vor dem API-Call
+lib/rate-limit.ts         In-Memory Rate-Limiter (pro IP, fixed window)
+components/               ImageDropzone, AnalysisReport (Darstellung des Reports)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Der Report wird über `client.messages.parse()` mit `output_config.format` (Zod-Schema) angefordert — die Antwort kommt bereits typsicher geparst zurück, kein manuelles JSON-Parsing/Validieren nötig.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Setup
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+cp .env.local.example .env.local   # ANTHROPIC_API_KEY eintragen
+npm install
+npm run dev
+```
 
-## Learn More
+→ [http://localhost:3000](http://localhost:3000)
 
-To learn more about Next.js, take a look at the following resources:
+Ohne `ANTHROPIC_API_KEY` läuft die App, aber `/api/analyze` liefert eine kontrollierte Fehlermeldung statt eines Reports.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Mit Docker
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+cp .env.local.example .env.local   # ANTHROPIC_API_KEY eintragen
+docker compose up -d --build
+```
 
-## Deploy on Vercel
+→ [http://localhost:3100](http://localhost:3100) (Port in `docker-compose.yml` anpassbar)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Tests
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm run test         # einmalig
+npm run test:watch   # Watch-Modus
+```
+
+Abgedeckt: Zod-Schema-Validierung, Rate-Limiter-Logik, Dropzone-Verhalten (Dateityp-Validierung, Drag & Drop), API-Route (inkl. Erfolgsfall, Fehlerfall, Rate-Limit-Durchsetzung) mit gemocktem Anthropic-Client.
+
+## Produktions-Hygiene
+
+- **Rate-Limiting:** `ANALYZE_RATE_LIMIT` (Default 10) Requests pro `ANALYZE_RATE_LIMIT_WINDOW_MS` (Default 10 Min) pro Client-IP. In-Memory, also pro Prozess — für Mehrinstanz-Deployments durch einen geteilten Store (z. B. Upstash/Redis) ersetzen.
+- **Bildkompression:** Jeder Upload wird vor dem API-Call auf max. 1568px Kantenlänge verkleinert und als JPEG (Qualität 82) normalisiert — reduziert Token-Kosten und Latenz bei großen Fotos.
+- **CI:** GitHub Actions (`.github/workflows/ci.yml`) führt bei jedem Push/PR Lint, Typecheck, Tests und Docker-Build aus.
+
+## Weitere Doku
+
+- [Next.js Dokumentation](https://nextjs.org/docs)
+- [Anthropic API Dokumentation](https://docs.anthropic.com)

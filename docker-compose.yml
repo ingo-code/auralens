@@ -1,0 +1,7 @@
+services:
+  auralens:
+    build: .
+    ports:
+      - "3100:3000"
+    env_file:
+      - .env.local
