@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start -p 3001",
     "lint": "eslint",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "invite-codes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/create-invite-codes.mjs"
