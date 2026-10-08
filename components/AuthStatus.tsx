@@ -4,9 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { useI18n } from "@/lib/i18n/client";
 import { createClient } from "@/lib/supabase/client";
+import { CreditBadge } from "@/components/CreditBadge";
+import { refreshCredits } from "@/lib/credits-store";
 
 export function AuthStatus() {
+  const { t } = useI18n();
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -19,8 +23,10 @@ export function AuthStatus() {
       setLoaded(true);
     });
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      // The balance belongs to the account - reload it when that changes.
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") void refreshCredits();
     });
 
     return () => listener.subscription.unsubscribe();
@@ -41,20 +47,21 @@ export function AuthStatus() {
     <div className="flex items-center gap-4 text-sm">
       {user ? (
         <>
-          <Link href="/dashboard" className="text-zinc-400 transition-colors hover:text-zinc-200">
-            Meine Analysen
+          <CreditBadge />
+          <Link href="/dashboard" className="text-stone-600 transition-colors hover:text-stone-900">
+            {t.nav.myAnalyses}
           </Link>
           <button
             type="button"
             onClick={handleSignOut}
-            className="text-zinc-400 transition-colors hover:text-zinc-200"
+            className="text-stone-600 transition-colors hover:text-stone-900"
           >
-            Abmelden
+            {t.nav.signOut}
           </button>
         </>
       ) : (
-        <Link href="/login" className="text-zinc-400 transition-colors hover:text-zinc-200">
-          Anmelden
+        <Link href="/login" className="text-stone-600 transition-colors hover:text-stone-900">
+          {t.nav.signIn}
         </Link>
       )}
     </div>

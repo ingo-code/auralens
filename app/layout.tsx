@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { getMessages } from "@/lib/i18n";
+import { LocaleProvider } from "@/lib/i18n/client";
+import { getRequestLocale } from "@/lib/i18n/server";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -12,19 +15,24 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "AuraLens",
-  description:
-    "KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und Kreative.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getRequestLocale();
+  return { title: "AuraLens", description: getMessages(locale).meta.description };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const locale = await getRequestLocale();
+
   return (
     <html
-      lang="de"
+      lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-black text-zinc-100">{children}</body>
+      {/* Browser extensions (e.g. Grammarly) inject attributes into <body> before
+          React hydrates; this silences only that element's attribute mismatch. */}
+      <body className="flex min-h-full flex-col text-stone-900" suppressHydrationWarning>
+        <LocaleProvider locale={locale}>{children}</LocaleProvider>
+      </body>
     </html>
   );
 }

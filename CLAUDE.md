@@ -8,5 +8,5 @@ Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und 
 
 ## Regeln für die Entwicklung
 - Schreibe sauberen, modularen TypeScript-Code.
-- Nutze Tailwind CSS für ein modernes, responsives Dark-Mode-Design.
+- Nutze Tailwind CSS für ein modernes, responsives helles Design (warmes Off-White, weiße Karten mit weichen Schatten, Akzente Violett→Fuchsia).
 - Achte auf sauberes Error Handling bei API-Aufrufen (insb. Bild-Uploads und Claude Vision).

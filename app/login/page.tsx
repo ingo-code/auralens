@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useI18n } from "@/lib/i18n/client";
 import { createClient } from "@/lib/supabase/client";
 
 type Mode = "signin" | "signup";
 
 export default function LoginPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
@@ -36,7 +39,7 @@ export default function LoginPage() {
     }
 
     if (mode === "signup") {
-      setInfo("Konto erstellt. Du kannst dich jetzt anmelden.");
+      setInfo(t.login.accountCreated);
       setMode("signin");
       return;
     }
@@ -46,19 +49,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6 text-zinc-100">
-      <div className="w-full max-w-sm space-y-6 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8">
+    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-stone-900">
+      <div className="absolute right-6 top-6">
+        <LanguageSwitcher />
+      </div>
+      <div className="w-full max-w-sm space-y-6 rounded-3xl border border-stone-200 bg-white/90 p-8 shadow-xl shadow-violet-500/5 backdrop-blur">
         <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-violet-400">AuraLens</p>
-          <h1 className="mt-2 text-xl font-semibold">
-            {mode === "signin" ? "Anmelden" : "Konto erstellen"}
+          <p className="text-xl font-semibold tracking-tight">Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span></p>
+          <h1 className="mt-3 text-lg font-medium text-stone-700">
+            {mode === "signin" ? t.login.signIn : t.login.signUp}
           </h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1 block text-sm text-zinc-400">
-              E-Mail
+            <label htmlFor="email" className="mb-1 block text-sm text-stone-600">
+              {t.login.email}
             </label>
             <input
               id="email"
@@ -66,12 +72,12 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
+              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
             />
           </div>
           <div>
-            <label htmlFor="password" className="mb-1 block text-sm text-zinc-400">
-              Passwort
+            <label htmlFor="password" className="mb-1 block text-sm text-stone-600">
+              {t.login.password}
             </label>
             <input
               id="password"
@@ -80,19 +86,19 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-950/60 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-violet-400"
+              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
             />
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          {info && <p className="text-sm text-emerald-400">{info}</p>}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          {info && <p className="text-sm text-emerald-600">{info}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-lg bg-violet-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-xl px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-md shadow-violet-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loading ? "Bitte warten…" : mode === "signin" ? "Anmelden" : "Registrieren"}
+            {loading ? t.login.wait : mode === "signin" ? t.login.signIn : t.login.register}
           </button>
         </form>
 
@@ -103,9 +109,9 @@ export default function LoginPage() {
             setError(null);
             setInfo(null);
           }}
-          className="w-full text-center text-sm text-zinc-500 transition-colors hover:text-zinc-300"
+          className="w-full text-center text-sm text-stone-500 transition-colors hover:text-stone-900"
         >
-          {mode === "signin" ? "Noch kein Konto? Registrieren" : "Schon registriert? Anmelden"}
+          {mode === "signin" ? t.login.toSignUp : t.login.toSignIn}
         </button>
       </div>
     </div>

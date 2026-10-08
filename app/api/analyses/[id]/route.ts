@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getMessages } from "@/lib/i18n";
+import { localeFromRequest } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const t = getMessages(localeFromRequest(request));
   const { id } = await params;
   const supabase = await createClient();
 
@@ -16,7 +19,7 @@ export async function DELETE(
     console.error("Supabase-Sitzung konnte nicht geprüft werden:", error);
   }
   if (!userId) {
-    return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
+    return NextResponse.json({ error: t.errors.notSignedIn }, { status: 401 });
   }
 
   const { data: analysis, error: fetchError } = await supabase
@@ -27,7 +30,7 @@ export async function DELETE(
     .single();
 
   if (fetchError || !analysis) {
-    return NextResponse.json({ error: "Analyse nicht gefunden." }, { status: 404 });
+    return NextResponse.json({ error: t.errors.analysisNotFound }, { status: 404 });
   }
 
   await supabase.storage.from("analysis-images").remove([analysis.image_path]);
@@ -40,7 +43,7 @@ export async function DELETE(
 
   if (deleteError) {
     console.error("Löschen der Analyse fehlgeschlagen:", deleteError.message);
-    return NextResponse.json({ error: "Löschen fehlgeschlagen." }, { status: 500 });
+    return NextResponse.json({ error: t.errors.deleteFailed }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

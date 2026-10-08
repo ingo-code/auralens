@@ -1,0 +1,201 @@
+{
+  "info": {
+    "name": "AuraLens API v1",
+    "description": "Public API v1 (docs/API-v1.md). Variable 'apiKey' setzen (Dashboard -> API & Credits). Ablauf: 'Analyse starten' -> 'Status abfragen' wiederholen, bis status = completed.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3001"
+    },
+    {
+      "key": "apiKey",
+      "value": ""
+    },
+    {
+      "key": "analysisId",
+      "value": ""
+    },
+    {
+      "key": "seriesReport",
+      "value": ""
+    },
+    {
+      "key": "seriesFiles",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Guthaben & Limits",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/usage"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analyse starten (Serie)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/v1/analyses",
+        "description": "1 Bild = Einzelbild, 2-10 = Serie. Dateien im Body auswählen. Kostet 1 Credit pro Bild.",
+        "header": [
+          {
+            "key": "Idempotency-Key",
+            "value": "{{$guid}}"
+          }
+        ],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "images",
+              "type": "file",
+              "src": []
+            },
+            {
+              "key": "images",
+              "type": "file",
+              "src": []
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 202', () => pm.response.to.have.status(202));",
+              "pm.collectionVariables.set('analysisId', pm.response.json().id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Status abfragen (bis completed)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/analyses/{{analysisId}}?sort=consistency&order=asc"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const a = pm.response.json();",
+              "pm.test('Status 200', () => pm.response.to.have.status(200));",
+              "if (a.status === 'completed' && a.type === 'series') {",
+              "  pm.collectionVariables.set('seriesReport', JSON.stringify(a.report));",
+              "  pm.collectionVariables.set('seriesFiles', JSON.stringify(a.files));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analysen auflisten",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/analyses?limit=10"
+      }
+    },
+    {
+      "name": "Serie neu organisieren (kostenlos)",
+      "request": {
+        "method": "POST",
+        "url": "{{baseUrl}}/api/series/organize",
+        "auth": {
+          "type": "noauth"
+        },
+        "description": "Kein Claude-Aufruf. Nutzt das Ergebnis von 'Status abfragen' einer abgeschlossenen Serie.",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"report\": {{seriesReport}},\n  \"files\": {{seriesFiles}},\n  \"sort\": \"story\",\n  \"group\": \"shot\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 200', () => pm.response.to.have.status(200));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analyse löschen",
+      "request": {
+        "method": "DELETE",
+        "url": "{{baseUrl}}/api/v1/analyses/{{analysisId}}"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Status 204', () => pm.response.to.have.status(204));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Fehlerfall: ohne API-Key",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/api/v1/usage",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('401 im RFC-9457-Format', () => { pm.response.to.have.status(401); pm.expect(pm.response.json().code).to.eql('unauthorized'); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { useI18n } from "@/lib/i18n/client";
 
 const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
@@ -10,6 +11,7 @@ type ImageDropzoneProps = {
 };
 
 export function ImageDropzone({ onFileSelected, disabled = false }: ImageDropzoneProps) {
+  const { t } = useI18n();
   const [isDragging, setIsDragging] = useState(false);
   const [rejectionError, setRejectionError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -19,13 +21,13 @@ export function ImageDropzone({ onFileSelected, disabled = false }: ImageDropzon
       const file = files?.[0];
       if (!file) return;
       if (!ACCEPTED_TYPES.includes(file.type)) {
-        setRejectionError("Nicht unterstützter Dateityp. Bitte JPEG, PNG, WEBP oder GIF verwenden.");
+        setRejectionError(t.dropzone.unsupportedType);
         return;
       }
       setRejectionError(null);
       onFileSelected(file);
     },
-    [onFileSelected]
+    [onFileSelected, t]
   );
 
   const openFilePicker = () => {
@@ -55,12 +57,12 @@ export function ImageDropzone({ onFileSelected, disabled = false }: ImageDropzon
           setIsDragging(false);
           if (!disabled) handleFiles(event.dataTransfer.files);
         }}
-        className={`flex w-full flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-16 text-center transition-colors ${
+        className={`flex w-full flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed px-8 py-16 text-center transition-colors ${
           disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"
         } ${
           isDragging
-            ? "border-violet-400 bg-violet-500/10"
-            : "border-zinc-700 bg-zinc-900/40 hover:border-zinc-500 hover:bg-zinc-900/70"
+            ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-500/10"
+            : "border-stone-300 bg-white/80 shadow-sm backdrop-blur hover:border-violet-400 hover:bg-white hover:shadow-md"
         }`}
       >
         <input
@@ -73,7 +75,7 @@ export function ImageDropzone({ onFileSelected, disabled = false }: ImageDropzon
           onChange={(event) => handleFiles(event.target.files)}
         />
 
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-violet-500/10 text-violet-300">
+        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white shadow-lg shadow-violet-500/25">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -92,14 +94,12 @@ export function ImageDropzone({ onFileSelected, disabled = false }: ImageDropzon
         </div>
 
         <div className="space-y-1">
-          <p className="text-base font-medium text-zinc-100">
-            Bild hierher ziehen oder klicken zum Hochladen
-          </p>
-          <p className="text-sm text-zinc-500">JPEG, PNG, WEBP oder GIF &middot; max. 10&nbsp;MB</p>
+          <p className="text-base font-medium text-stone-900">{t.dropzone.prompt}</p>
+          <p className="text-sm text-stone-500">{t.dropzone.hint}</p>
         </div>
       </div>
 
-      {rejectionError && <p className="mt-3 text-sm text-red-400">{rejectionError}</p>}
+      {rejectionError && <p className="mt-3 text-sm text-red-600">{rejectionError}</p>}
     </div>
   );
 }

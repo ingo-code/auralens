@@ -1,16 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { StyleAnalysisSchema } from "@/lib/analysis-schema";
+import { VALID_STYLE_REPORT } from "@/lib/__tests__/fixtures/style-report";
 
-const VALID_REPORT = {
-  style: { summary: "Ruhige, minimalistische Bildsprache.", tags: ["minimalistisch", "ruhig", "warm"] },
-  colorPalette: [
-    { hex: "#112233", name: "Tiefes Blau" },
-    { hex: "#AABBCC", name: "Nebelgrau" },
-    { hex: "#FF8800", name: "Bernstein" },
-  ],
-  emotions: ["Ruhe", "Geborgenheit"],
-  imagePrompt: "a calm minimalist gradient, soft natural light, highly detailed, 8k",
-};
+const VALID_REPORT = VALID_STYLE_REPORT;
 
 describe("StyleAnalysisSchema", () => {
   it("akzeptiert einen vollständigen, gültigen Report", () => {
@@ -39,10 +31,20 @@ describe("StyleAnalysisSchema", () => {
     expect(result.success).toBe(false);
   });
 
-  it("lehnt fehlenden Bild-Prompt ab", () => {
+  it("verlangt einen Prompt für jede der vier Plattformen", () => {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { imagePrompt: _imagePrompt, ...withoutPrompt } = VALID_REPORT;
-    const result = StyleAnalysisSchema.safeParse(withoutPrompt);
+    const { firefly: _firefly, ...withoutFirefly } = VALID_REPORT.prompts;
+    const result = StyleAnalysisSchema.safeParse({ ...VALID_REPORT, prompts: withoutFirefly });
     expect(result.success).toBe(false);
+  });
+
+  it("verlangt Flux/SDXL-Prompts mit Positiv- und Negativ-Teil", () => {
+    const invalid = { ...VALID_REPORT, prompts: { ...VALID_REPORT.prompts, flux: { positive: "x" } } };
+    expect(StyleAnalysisSchema.safeParse(invalid).success).toBe(false);
+  });
+
+  it("lehnt Stock-Metadaten mit zu wenigen Keywords ab (Minimum 20)", () => {
+    const invalid = { ...VALID_REPORT, stock: { ...VALID_REPORT.stock, keywords: ["one", "two"] } };
+    expect(StyleAnalysisSchema.safeParse(invalid).success).toBe(false);
   });
 });

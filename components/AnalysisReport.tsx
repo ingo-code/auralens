@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { ExportTabs } from "@/components/exports/ExportTabs";
+import { useI18n } from "@/lib/i18n/client";
 import type { StyleAnalysis } from "@/lib/analysis-schema";
 
 type AnalysisReportProps = {
@@ -8,28 +9,18 @@ type AnalysisReportProps = {
 };
 
 export function AnalysisReport({ report }: AnalysisReportProps) {
-  const [copied, setCopied] = useState(false);
-
-  const copyPrompt = async () => {
-    try {
-      await navigator.clipboard.writeText(report.imagePrompt);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      // Clipboard-Zugriff kann z. B. ohne sicheren Kontext fehlschlagen.
-    }
-  };
+  const { t } = useI18n();
 
   return (
-    <div className="w-full space-y-8 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 sm:p-8">
+    <div className="w-full space-y-8 rounded-3xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">Stil</h2>
-        <p className="mt-2 text-lg leading-relaxed text-zinc-100">{report.style.summary}</p>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-700">{t.report.style}</h2>
+        <p className="mt-2 text-lg leading-relaxed text-stone-900">{report.style.summary}</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {report.style.tags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-zinc-700 bg-zinc-800/60 px-3 py-1 text-xs text-zinc-300"
+              className="rounded-full border border-stone-300 bg-stone-50 px-3 py-1 text-xs text-stone-700"
             >
               {tag}
             </span>
@@ -38,21 +29,21 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">Farbpalette</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-700">{t.report.palette}</h2>
         <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {report.colorPalette.map((color) => (
             <div
               key={color.hex}
-              className="flex items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950/40 p-2"
+              className="flex items-center gap-3 rounded-xl border border-stone-200 bg-stone-50 p-2"
             >
               <span
-                className="h-8 w-8 shrink-0 rounded-md border border-white/10"
+                className="h-8 w-8 shrink-0 rounded-md border border-black/10"
                 style={{ backgroundColor: color.hex }}
                 aria-hidden="true"
               />
               <div className="min-w-0">
-                <p className="truncate text-sm text-zinc-200">{color.name}</p>
-                <p className="font-mono text-xs text-zinc-500">{color.hex}</p>
+                <p className="truncate text-sm text-stone-800">{color.name}</p>
+                <p className="font-mono text-xs text-stone-500">{color.hex}</p>
               </div>
             </div>
           ))}
@@ -60,12 +51,12 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
       </section>
 
       <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">Emotionen</h2>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-700">{t.report.emotions}</h2>
         <div className="mt-3 flex flex-wrap gap-2">
           {report.emotions.map((emotion) => (
             <span
               key={emotion}
-              className="rounded-full bg-violet-500/10 px-3 py-1 text-xs text-violet-200"
+              className="rounded-full bg-violet-50 px-3 py-1 text-xs text-violet-700"
             >
               {emotion}
             </span>
@@ -73,27 +64,11 @@ export function AnalysisReport({ report }: AnalysisReportProps) {
         </div>
       </section>
 
-      <section>
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-violet-300">
-            Bild-Prompt (ChatGPT)
-          </h2>
-          <button
-            type="button"
-            onClick={copyPrompt}
-            className="text-xs font-medium text-zinc-400 transition-colors hover:text-violet-300"
-          >
-            {copied ? "Kopiert!" : "Kopieren"}
-          </button>
-        </div>
-        <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-zinc-800 bg-black/60 p-4 font-mono text-sm text-zinc-300">
-          {report.imagePrompt}
-        </pre>
-        <p className="mt-2 text-xs text-zinc-500">
-          Für eine möglichst originalgetreue, fotorealistische Nachbildung optimiert. Direkt in
-          ChatGPT einfügen (kostenlos mit Login nutzbar) und als Bild generieren lassen.
-        </p>
-      </section>
+      <ExportTabs
+        prompts={report.prompts}
+        colors={report.colorPalette}
+        stock={[{ label: t.report.thisImage, stock: report.stock }]}
+      />
     </div>
   );
 }
