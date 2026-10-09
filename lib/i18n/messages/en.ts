@@ -57,6 +57,13 @@ export const en: Messages = {
     toSignUp: "No account yet? Sign up",
     toSignIn: "Already registered? Sign in",
     back: "← Back to home",
+    or: "or",
+    googleSignIn: "Sign in with Google",
+    googleSignUp: "Sign up with Google",
+    googleConsentBefore: "By continuing with Google you accept the ",
+    googleConsentMiddle: " and confirm you have read the ",
+    googleConsentAfter: ".",
+    oauthFailed: "Signing in with Google failed. Please try again.",
   },
   dashboard: {
     title: "My analyses",

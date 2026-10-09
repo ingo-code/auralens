@@ -71,6 +71,13 @@ export const de = {
     toSignUp: "Noch kein Konto? Registrieren",
     toSignIn: "Schon registriert? Anmelden",
     back: "← Zurück zur Startseite",
+    or: "oder",
+    googleSignIn: "Mit Google anmelden",
+    googleSignUp: "Mit Google registrieren",
+    googleConsentBefore: "Mit Google akzeptierst du die ",
+    googleConsentMiddle: " und bestätigst, die ",
+    googleConsentAfter: " gelesen zu haben.",
+    oauthFailed: "Die Anmeldung mit Google ist fehlgeschlagen. Bitte versuche es erneut.",
   },
   dashboard: {
     title: "Meine Analysen",
