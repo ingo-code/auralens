@@ -58,6 +58,12 @@ export default function LoginPage() {
 
   return (
     <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-stone-900">
+      <Link
+        href="/"
+        className="absolute left-6 top-6 text-sm text-stone-500 transition-colors hover:text-stone-900"
+      >
+        {t.login.back}
+      </Link>
       <div className="absolute right-6 top-6">
         <LanguageSwitcher />
       </div>

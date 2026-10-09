@@ -70,6 +70,7 @@ export const de = {
     accountCreated: "Konto erstellt. Du kannst dich jetzt anmelden.",
     toSignUp: "Noch kein Konto? Registrieren",
     toSignIn: "Schon registriert? Anmelden",
+    back: "← Zurück zur Startseite",
   },
   dashboard: {
     title: "Meine Analysen",

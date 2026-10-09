@@ -56,6 +56,7 @@ export const en: Messages = {
     accountCreated: "Account created. You can sign in now.",
     toSignUp: "No account yet? Sign up",
     toSignIn: "Already registered? Sign in",
+    back: "← Back to home",
   },
   dashboard: {
     title: "My analyses",
