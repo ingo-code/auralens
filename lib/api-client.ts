@@ -1,5 +1,5 @@
 import type { ApiErrorCode, ProblemDetails } from "@/lib/api/errors";
-import type { AnalysisResource, ListResource, UsageResource } from "@/lib/api/resources";
+import type { AnalysisResource, UsageResource } from "@/lib/api/resources";
 import type { Messages } from "@/lib/i18n";
 
 /*
@@ -9,7 +9,7 @@ import type { Messages } from "@/lib/i18n";
  */
 
 /** How often a running analysis is polled. */
-export const ANALYSIS_POLL_INTERVAL_MS = 2500;
+const ANALYSIS_POLL_INTERVAL_MS = 2500;
 /** Consecutive failed polls (network hiccups, restarts) before giving up. */
 const MAX_POLL_FAILURES = 5;
 
@@ -77,23 +77,15 @@ export function startAnalysis(
   });
 }
 
-export function fetchAnalysis(id: string, t: Messages, signal?: AbortSignal): Promise<AnalysisResource> {
+function fetchAnalysis(id: string, t: Messages, signal?: AbortSignal): Promise<AnalysisResource> {
   return request<AnalysisResource>(`/api/v1/analyses/${encodeURIComponent(id)}`, t, { signal });
-}
-
-export function fetchAnalyses(t: Messages, limit = 20): Promise<ListResource<AnalysisResource>> {
-  return request<ListResource<AnalysisResource>>(`/api/v1/analyses?limit=${limit}`, t);
-}
-
-export function deleteAnalysis(id: string, t: Messages): Promise<void> {
-  return request<void>(`/api/v1/analyses/${encodeURIComponent(id)}`, t, { method: "DELETE" });
 }
 
 export function fetchUsage(t: Messages): Promise<UsageResource> {
   return request<UsageResource>("/api/v1/usage", t);
 }
 
-export function isFinished(analysis: AnalysisResource): boolean {
+function isFinished(analysis: AnalysisResource): boolean {
   return analysis.status === "completed" || analysis.status === "failed";
 }
 

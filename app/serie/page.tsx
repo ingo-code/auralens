@@ -11,6 +11,7 @@ import {
   SignInPrompt,
 } from "@/components/analysis/JobNotices";
 import { AuthStatus } from "@/components/AuthStatus";
+import { UploadNotice } from "@/components/legal/UploadNotice";
 import { SeriesResults } from "@/components/series/SeriesResults";
 import { SeriesUploader, type SelectedImage } from "@/components/series/SeriesUploader";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -136,6 +137,7 @@ export default function SeriesPage() {
         ) : (
           <>
             <SeriesUploader images={images} onAdd={addFiles} onRemove={removeImage} />
+            <UploadNotice />
             {state.phase === "failed" && (
               <AnalysisFailedNotice analysis={state.analysis} onRetry={images.length >= 2 ? startAnalysis : undefined} />
             )}

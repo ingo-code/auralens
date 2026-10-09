@@ -40,7 +40,7 @@ const MAX_IDEMPOTENCY_KEY_LENGTH = 255;
 export const POST = apiRoute(async (ctx) => {
   const { t } = ctx;
   const principal = await authenticate(ctx, { scope: "analyses:write" });
-  enforceRateLimit(ctx, `v1:create:${principal.userId}`, API_RATE_LIMITS.createAnalysis);
+  await enforceRateLimit(ctx, `v1:create:${principal.userId}`, API_RATE_LIMITS.createAnalysis);
 
   const idempotencyKey = readIdempotencyKey(ctx);
 
@@ -126,7 +126,7 @@ const ListQuerySchema = z.object({
 /** Lists analyses, newest first, without reports. Cursor-paginated. */
 export const GET = apiRoute(async (ctx) => {
   const principal = await authenticate(ctx, { scope: "analyses:read" });
-  enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
+  await enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
 
   const query = ListQuerySchema.safeParse(Object.fromEntries(ctx.request.nextUrl.searchParams));
   if (!query.success) throw new ApiError(400, "invalid_request", describeValidationError(query.error, ctx.t));

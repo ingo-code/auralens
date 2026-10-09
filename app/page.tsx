@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ImageDropzone } from "@/components/ImageDropzone";
 import { AnalysisReport } from "@/components/AnalysisReport";
+import { UploadNotice } from "@/components/legal/UploadNotice";
 import { AuthStatus } from "@/components/AuthStatus";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { AnalysisProgress } from "@/components/analysis/AnalysisProgress";
@@ -104,7 +105,10 @@ export default function Home() {
         {credits.status === "signed-out" ? (
           <SignInPrompt />
         ) : (
-          <ImageDropzone onFileSelected={analyzeImage} disabled={busy || credits.status === "loading"} />
+          <>
+            <ImageDropzone onFileSelected={analyzeImage} disabled={busy || credits.status === "loading"} />
+            <UploadNotice />
+          </>
         )}
 
         {(previewUrl || state.phase !== "idle") && (
@@ -153,9 +157,7 @@ export default function Home() {
         {report && <AnalysisReport report={report} />}
       </main>
 
-      <footer className="mx-auto w-full max-w-3xl px-6 pb-10 text-center text-xs text-stone-400">
-        {t.home.footer}
-      </footer>
+      <p className="mx-auto w-full max-w-3xl px-6 pb-10 text-center text-xs text-stone-400">{t.home.footer}</p>
 
       {job.creditsExhausted && (
         <CreditsExhaustedDialog detail={job.creditsExhausted} onClose={job.dismissCreditsExhausted} />

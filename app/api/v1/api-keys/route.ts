@@ -24,7 +24,7 @@ export const runtime = "nodejs";
 /** Active (non-revoked) keys of the signed-in user. Secrets are never returned. */
 export const GET = apiRoute(async (ctx) => {
   const principal = await authenticate(ctx, { sessionOnly: true });
-  enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
+  await enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
 
   const rows = await listApiKeys(principal.userId);
   return NextResponse.json<ListResource<ApiKeyResource>>({
@@ -42,7 +42,7 @@ const CreateKeySchema = z.object({
 
 export const POST = apiRoute(async (ctx) => {
   const principal = await authenticate(ctx, { sessionOnly: true });
-  enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
+  await enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
 
   const parsed = CreateKeySchema.safeParse(await readJsonBody(ctx, 10 * 1024));
   if (!parsed.success) throw new ApiError(400, "invalid_request", describeValidationError(parsed.error, ctx.t));

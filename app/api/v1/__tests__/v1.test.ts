@@ -23,8 +23,11 @@ const repo = vi.hoisted(() => ({
   failJob: vi.fn(),
   failStaleJobs: vi.fn(),
   getCreditBalance: vi.fn(),
+  exportUserData: vi.fn(),
+  deleteUserAccount: vi.fn(),
 }));
 const getClaimsMock = vi.hoisted(() => vi.fn());
+const getUserMock = vi.hoisted(() => vi.fn());
 const backgroundTasks = vi.hoisted(() => [] as (() => Promise<void>)[]);
 const parseMock = vi.hoisted(() => vi.fn());
 
@@ -33,7 +36,7 @@ vi.mock("@/lib/api/repository", async () => {
   return { ...actual, ...repo };
 });
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: async () => ({ auth: { getClaims: getClaimsMock } }),
+  createClient: async () => ({ auth: { getClaims: getClaimsMock, getUser: getUserMock } }),
 }));
 vi.mock("@/lib/api/background", () => ({
   runInBackground: (task: () => Promise<void>) => backgroundTasks.push(task),
@@ -58,6 +61,8 @@ const analysis = await import("@/app/api/v1/analyses/[id]/route");
 const usage = await import("@/app/api/v1/usage/route");
 const apiKeys = await import("@/app/api/v1/api-keys/route");
 const apiKey = await import("@/app/api/v1/api-keys/[id]/route");
+const account = await import("@/app/api/v1/account/route");
+const accountExport = await import("@/app/api/v1/account/export/route");
 const { JobCreationError } = await import("@/lib/api/repository");
 const { encodeCursor } = await import("@/lib/api/pagination");
 
@@ -519,5 +524,55 @@ describe("/api/v1/api-keys", () => {
     expect(ok.status).toBe(204);
     expect(missing.status).toBe(404);
     expect(repo.revokeApiKey).toHaveBeenCalledWith(USER_ID, KEY_ID);
+  });
+});
+
+describe("Datenschutz-Selbstbedienung (/api/v1/account)", () => {
+  beforeEach(() => {
+    getClaimsMock.mockResolvedValue({ data: { claims: { sub: USER_ID } } });
+    getUserMock.mockResolvedValue({ data: { user: { id: USER_ID, email: "Tester@Example.org" } } });
+  });
+
+  it("liefert alle Daten des Kontos als JSON-Download", async () => {
+    repo.exportUserData.mockResolvedValue({ exportedAt: "2026-10-09T12:00:00.000Z", account: { id: USER_ID }, analyses: [] });
+
+    const res = await accountExport.GET(request("/account/export"), noParams);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-disposition")).toBe('attachment; filename="auralens-daten-2026-10-09.json"');
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(await res.json()).toMatchObject({ account: { id: USER_ID } });
+    expect(repo.exportUserData).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it("ist mit einem API-Key weder für Export noch Löschung erreichbar", async () => {
+    const exported = await accountExport.GET(request("/account/export", { headers: withKey() }), noParams);
+    const deleted = await account.DELETE(
+      request("/account", { method: "DELETE", headers: withKey(), body: JSON.stringify({ confirmEmail: "tester@example.org" }) }),
+      noParams
+    );
+
+    expect(exported.status).toBe(403);
+    expect(deleted.status).toBe(403);
+    expect(repo.exportUserData).not.toHaveBeenCalled();
+    expect(repo.deleteUserAccount).not.toHaveBeenCalled();
+  });
+
+  it("löscht das Konto nur, wenn die E-Mail-Adresse zur Bestätigung stimmt", async () => {
+    const wrong = await account.DELETE(
+      request("/account", { method: "DELETE", body: JSON.stringify({ confirmEmail: "jemand@anders.de" }) }),
+      noParams
+    );
+    expect(wrong.status).toBe(400);
+    expect((await wrong.json()).detail).toMatch(/E-Mail-Adresse/);
+    expect(repo.deleteUserAccount).not.toHaveBeenCalled();
+
+    repo.deleteUserAccount.mockResolvedValue(undefined);
+    const ok = await account.DELETE(
+      request("/account", { method: "DELETE", body: JSON.stringify({ confirmEmail: " tester@example.org " }) }),
+      noParams
+    );
+    expect(ok.status).toBe(204);
+    expect(repo.deleteUserAccount).toHaveBeenCalledWith(USER_ID);
   });
 });

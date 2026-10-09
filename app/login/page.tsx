@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useI18n } from "@/lib/i18n/client";
 import { createClient } from "@/lib/supabase/client";
+import { BETA_TERMS_VERSION } from "@/lib/legal";
 
 type Mode = "signin" | "signup";
 
@@ -14,6 +16,7 @@ export default function LoginPage() {
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +32,12 @@ export default function LoginPage() {
     const { error: authError } =
       mode === "signin"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+        : await supabase.auth.signUp({
+            email,
+            password,
+            // Proof of consent to the beta terms (version + time), stored with the account.
+            options: { data: { beta_terms_version: BETA_TERMS_VERSION, beta_terms_accepted_at: new Date().toISOString() } },
+          });
 
     setLoading(false);
 
@@ -89,6 +97,29 @@ export default function LoginPage() {
               className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
             />
           </div>
+
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 text-xs leading-relaxed text-stone-600">
+              <input
+                type="checkbox"
+                required
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-violet-600"
+              />
+              <span>
+                {t.legal.consentBefore}
+                <Link href="/beta-bedingungen" target="_blank" className="text-violet-700 underline">
+                  {t.legal.terms}
+                </Link>
+                {t.legal.consentMiddle}
+                <Link href="/datenschutz" target="_blank" className="text-violet-700 underline">
+                  {t.legal.privacy}
+                </Link>
+                {t.legal.consentAfter}
+              </span>
+            </label>
+          )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}
           {info && <p className="text-sm text-emerald-600">{info}</p>}

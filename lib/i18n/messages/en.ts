@@ -8,7 +8,6 @@ export const en: Messages = {
     copy: "Copy",
     copied: "Copied!",
     reset: "Reset",
-    cancel: "Cancel",
     delete: "Delete",
     image: (n) => `Image ${n}`,
     languageSwitcher: "Language",
@@ -33,9 +32,7 @@ export const en: Messages = {
     previewAlt: "Preview of the uploaded image",
     analyzing: "Analyzing image…",
     done: "✓ Analysis complete",
-    saved: " · saved to your history",
     footer: "Analysis powered by Claude Vision",
-    failed: "Analysis failed.",
     unknownError: "Unknown error during analysis.",
   },
   dropzone: {
@@ -234,12 +231,8 @@ export const en: Messages = {
   },
   errors: {
     rateLimited: "Too many requests. Please wait a moment before trying again.",
-    seriesRateLimited: "Too many series analyses. Please wait a moment before trying again.",
     organizeRateLimited: "Too many requests. Please wait a moment.",
-    expectedSingleImage: "Invalid request: expected multipart/form-data with one image.",
-    expectedSeriesImages: "Invalid request: expected multipart/form-data with multiple images in the 'images' field.",
     expectedJson: "Invalid request: expected a JSON body.",
-    noImage: "No image found. Please send an image in the 'image' field.",
     unsupportedType: (type) => `Unsupported file type: ${type || "unknown"}. Allowed are JPEG, PNG, WEBP and GIF.`,
     fileTooLarge: "The image is too large. Maximum size: 10 MB.",
     imageNotProcessable: "The image could not be processed. Please try a different image.",
@@ -273,7 +266,6 @@ export const en: Messages = {
     serverUnreachable: "The server is unreachable. Is `npm run dev` running?",
     unexpectedResponse: (status, snippet) =>
       `Unexpected response from the server (HTTP ${status}${snippet ? `: ${snippet}` : ""}).`,
-    requestFailed: (status) => `Analysis failed (HTTP ${status}).`,
     // Public API v1
     apiUnauthorized:
       "Not authenticated. Send an API key as 'Authorization: Bearer al_live_…' or sign in.",
@@ -294,6 +286,7 @@ export const en: Messages = {
     processingInterrupted: "The analysis was interrupted by a server restart. The credits were refunded.",
     apiKeyLimit: (max) => `At most ${max} active API keys per account. Revoke an old key first.`,
     apiKeyNotFound: "API key not found.",
+    accountDeleteConfirm: "To confirm, please enter the e-mail address of your account.",
     routeRetired:
       "This endpoint has been retired. Analyses now run via POST /api/v1/analyses (signed in or with an API key, see docs/API-v1.md).",
   },
@@ -351,6 +344,39 @@ export const en: Messages = {
     rate_limited: "Too many requests. Please wait a moment.",
     gone: "This feature has been retired.",
     internal_error: "Server error. Please try again later.",
+  },
+  legal: {
+    imprint: "Imprint",
+    privacy: "Privacy",
+    terms: "Beta terms",
+    closedBeta: "Closed beta · free of charge · no payments",
+    germanOnly: "The legal texts are only available in German; the German version is binding.",
+    uploadNotice:
+      "Your images are sent to Anthropic (USA) for analysis and are not stored by AuraLens; metadata such as " +
+      "GPS is removed beforehand. Only upload images you hold the rights to – recognizable people only with " +
+      "their consent.",
+    uploadNoticeLink: "Privacy policy",
+    consentBefore: "I accept the ",
+    consentMiddle: " and have read the ",
+    consentAfter: ".",
+  },
+  account: {
+    navLink: "Account & data",
+    title: "Account & data",
+    intro: "Exercise your data protection rights yourself (Art. 15, 17 and 20 GDPR).",
+    exportHeading: "Download your data",
+    exportText:
+      "Downloads all data stored for your account as a JSON file: account, analyses with reports, credit " +
+      "transactions and API keys (without secret keys).",
+    exportButton: "Download my data",
+    exporting: "Preparing…",
+    deleteHeading: "Delete account",
+    deleteText:
+      "Permanently deletes your account – with all analyses, reports, stored images, API keys and credits. " +
+      "This cannot be undone.",
+    deleteConfirmLabel: "Enter your e-mail address to confirm",
+    deleteButton: "Delete account permanently",
+    deleting: "Deleting…",
   },
   apiKeys: {
     navLink: "API & credits",

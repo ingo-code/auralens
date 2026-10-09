@@ -128,6 +128,9 @@ export default async function DashboardPage() {
             <Link href="/dashboard/api" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
               {t.apiKeys.navLink}
             </Link>
+            <Link href="/dashboard/account" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
+              {t.account.navLink}
+            </Link>
             <Link
               href="/serie"
               className="rounded-full border border-violet-200 bg-white px-4 py-2 text-sm font-medium text-violet-700 shadow-sm transition-colors hover:bg-violet-50"

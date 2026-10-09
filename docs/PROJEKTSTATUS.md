@@ -106,7 +106,7 @@ Eigenschaften:
 - Fortschritt zeigt erledigte Teilschritte, aber noch keine Teil-*Inhalte* (z. B. Prompts vor dem Rest); Vorschaubilder gibt es nur in der Sitzung, in der hochgeladen wurde (API speichert keine Bilder)
 - Alte Einzelanalysen (Tabelle `analyses`) haben keine Detailansicht und teils noch das Feld `imagePrompt`
 - Kein Lightroom-`.xmp`-Export der Korrekturen (stärkstes potenzielles Alleinstellungsmerkmal), kein Shutterstock-CSV
-- Keine Landingpage mit Positionierung, kein Onboarding, **keine Rechtstexte** (Impressum, Datenschutz, AGB/API-Bedingungen, AV-Vertrag; Bilder gehen an einen US-Dienst), keine Löschfristen
+- Keine Landingpage mit Positionierung, kein Onboarding. **Rechtliches für den geschlossenen Beta-Test ist umgesetzt** (10.10.2026, siehe `docs/RECHTLICHES.md`): Impressum, Datenschutzerklärung, Beta-Bedingungen, Footer-Links, Upload-Hinweis, Zustimmung bei Registrierung, Datenexport und Konto-Löschung (live geprüft). Offen beim Betreiber: Angaben in `LEGAL_*` eintragen, AV-Verträge (Anthropic, Supabase, Hosting), Verarbeitungsverzeichnis. Für einen kommerziellen Start fehlen AGB/Widerruf/Preisangaben
 - Kostenloser Köder aus der Strategie (Paletten-Tool, Serien-Quick-Check ohne Claude) noch nicht gebaut
 
 **Phase 2/3 der API (geplant)**

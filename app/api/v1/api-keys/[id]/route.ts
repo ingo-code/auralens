@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 /** Revokes a key immediately; requests with it get 401 from then on. Session-only. */
 export const DELETE = apiRoute<{ id: string }>(async (ctx, { id }) => {
   const principal = await authenticate(ctx, { sessionOnly: true });
-  enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
+  await enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
 
   if (!isUuid(id) || !(await revokeApiKey(principal.userId, id))) {
     throw new ApiError(404, "not_found", ctx.t.errors.apiKeyNotFound);

@@ -19,7 +19,7 @@ type Params = { id: string };
  */
 export const GET = apiRoute<Params>(async (ctx, { id }) => {
   const principal = await authenticate(ctx, { scope: "analyses:read" });
-  enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
+  await enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
 
   // Validated up front so a typo fails the same way regardless of job state.
   const options = OrganizeOptionsSchema.safeParse(Object.fromEntries(ctx.request.nextUrl.searchParams));
@@ -50,7 +50,7 @@ export const GET = apiRoute<Params>(async (ctx, { id }) => {
 /** Deletes the analysis and its report. Credits of a running analysis are not refunded. */
 export const DELETE = apiRoute<Params>(async (ctx, { id }) => {
   const principal = await authenticate(ctx, { scope: "analyses:write" });
-  enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
+  await enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
 
   if (!isUuid(id) || !(await deleteJob(principal.userId, id))) {
     throw new ApiError(404, "not_found", ctx.t.errors.analysisNotFound);

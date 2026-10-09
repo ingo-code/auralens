@@ -19,8 +19,9 @@ const buckets = new Map<string, Bucket>();
 
 /**
  * In-memory fixed-window rate limiter, scoped to a single process.
- * Fine for a single-container deployment; swap for a shared store
- * (e.g. Upstash/Redis) once running multiple instances.
+ * Fine for a single-container deployment; on multi-instance hosts the
+ * public API counts in Supabase instead (lib/api/handler.ts) and only
+ * falls back to this.
  */
 export function checkRateLimit(
   key: string,

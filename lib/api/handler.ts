@@ -4,7 +4,8 @@ import { AdminClientNotConfiguredError } from "@/lib/supabase/admin";
 import { getMessages, type Messages } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n/config";
 import { localeFromRequest } from "@/lib/i18n/server";
-import { checkRateLimit, type RateLimitOptions } from "@/lib/rate-limit";
+import { hitRateLimit } from "@/lib/api/repository";
+import { checkRateLimit, type RateLimitOptions, type RateLimitResult } from "@/lib/rate-limit";
 
 export type ApiContext = {
   request: NextRequest;
@@ -62,9 +63,13 @@ function toApiError(error: unknown, ctx: ApiContext): ApiError {
 /**
  * Applies a fixed-window rate limit and exposes it via the IETF draft
  * `RateLimit-*` headers on every response. Throws 429 when exhausted.
+ *
+ * Counts in Supabase so the limit holds across serverless instances; falls
+ * back to the per-process limiter when the database is not configured or
+ * unreachable (a rate limiter outage must not take the API down).
  */
-export function enforceRateLimit(ctx: ApiContext, key: string, options: RateLimitOptions): void {
-  const result = checkRateLimit(key, options);
+export async function enforceRateLimit(ctx: ApiContext, key: string, options: RateLimitOptions): Promise<void> {
+  const result = await sharedRateLimit(ctx, key, options);
   const resetSeconds = Math.max(0, Math.ceil((result.resetAt - Date.now()) / 1000));
 
   ctx.headers.set("RateLimit-Limit", String(result.limit));
@@ -73,6 +78,18 @@ export function enforceRateLimit(ctx: ApiContext, key: string, options: RateLimi
 
   if (!result.success) {
     throw new ApiError(429, "rate_limited", ctx.t.errors.rateLimited, { "Retry-After": String(resetSeconds) });
+  }
+}
+
+async function sharedRateLimit(ctx: ApiContext, key: string, options: RateLimitOptions): Promise<RateLimitResult> {
+  try {
+    const hit = await hitRateLimit(key, options.limit, options.windowMs);
+    return { ...hit, limit: options.limit };
+  } catch (error) {
+    if (!(error instanceof AdminClientNotConfiguredError)) {
+      console.error(`[api] request_id=${ctx.requestId} Rate-Limit-Speicher nicht erreichbar, nutze Prozess-Limit:`, error);
+    }
+    return checkRateLimit(key, options);
   }
 }
 

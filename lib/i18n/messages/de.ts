@@ -22,7 +22,6 @@ export const de = {
     copy: "Kopieren",
     copied: "Kopiert!",
     reset: "Zurücksetzen",
-    cancel: "Abbrechen",
     delete: "Löschen",
     image: (n: number) => `Bild ${n}`,
     languageSwitcher: "Sprache",
@@ -47,9 +46,7 @@ export const de = {
     previewAlt: "Vorschau des hochgeladenen Bildes",
     analyzing: "Analysiere Bild…",
     done: "✓ Analyse abgeschlossen",
-    saved: " · in deiner Historie gespeichert",
     footer: "Analyse powered by Claude Vision",
-    failed: "Analyse fehlgeschlagen.",
     unknownError: "Unbekannter Fehler bei der Analyse.",
   },
   dropzone: {
@@ -248,13 +245,8 @@ export const de = {
   },
   errors: {
     rateLimited: "Zu viele Anfragen. Bitte warte kurz, bevor du es erneut versuchst.",
-    seriesRateLimited: "Zu viele Serien-Analysen. Bitte warte kurz, bevor du es erneut versuchst.",
     organizeRateLimited: "Zu viele Anfragen. Bitte warte kurz.",
-    expectedSingleImage: "Ungültige Anfrage: Erwartet wird multipart/form-data mit einem Bild.",
-    expectedSeriesImages:
-      "Ungültige Anfrage: Erwartet wird multipart/form-data mit mehreren Bildern im Feld 'images'.",
     expectedJson: "Ungültige Anfrage: Erwartet wird ein JSON-Body.",
-    noImage: "Kein Bild gefunden. Bitte ein Bild unter dem Feld 'image' senden.",
     unsupportedType: (type: string) =>
       `Nicht unterstützter Dateityp: ${type || "unbekannt"}. Erlaubt sind JPEG, PNG, WEBP und GIF.`,
     fileTooLarge: "Das Bild ist zu groß. Maximale Größe: 10 MB.",
@@ -292,7 +284,6 @@ export const de = {
     serverUnreachable: "Der Server ist nicht erreichbar. Läuft `npm run dev`?",
     unexpectedResponse: (status: number, snippet: string) =>
       `Unerwartete Antwort vom Server (HTTP ${status}${snippet ? `: ${snippet}` : ""}).`,
-    requestFailed: (status: number) => `Analyse fehlgeschlagen (HTTP ${status}).`,
     // Public API v1
     apiUnauthorized:
       "Nicht authentifiziert. Sende einen API-Key als 'Authorization: Bearer al_live_…' oder melde dich an.",
@@ -314,6 +305,7 @@ export const de = {
     processingInterrupted: "Die Analyse wurde durch einen Serverneustart unterbrochen. Die Credits wurden erstattet.",
     apiKeyLimit: (max: number) => `Maximal ${max} aktive API-Keys pro Konto. Widerrufe zuerst einen alten Key.`,
     apiKeyNotFound: "API-Key nicht gefunden.",
+    accountDeleteConfirm: "Zur Bestätigung bitte die E-Mail-Adresse deines Kontos eingeben.",
     routeRetired:
       "Dieser Endpunkt wurde abgeschaltet. Analysen laufen jetzt über POST /api/v1/analyses (mit Anmeldung oder API-Key, siehe docs/API-v1.md).",
   },
@@ -374,6 +366,39 @@ export const de = {
     gone: "Diese Funktion wurde abgeschaltet.",
     internal_error: "Serverfehler. Bitte versuche es später erneut.",
   } satisfies Record<ApiErrorCode, string>,
+  legal: {
+    imprint: "Impressum",
+    privacy: "Datenschutz",
+    terms: "Beta-Bedingungen",
+    closedBeta: "Geschlossener Beta-Test · kostenlos · keine Zahlungen",
+    germanOnly: "Die rechtlichen Texte sind nur auf Deutsch verfügbar; die deutsche Fassung ist maßgeblich.",
+    uploadNotice:
+      "Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens nicht gespeichert; " +
+      "Metadaten wie GPS werden vorher entfernt. Lade nur Bilder hoch, an denen du die Rechte hast – " +
+      "erkennbare Personen nur mit deren Einwilligung.",
+    uploadNoticeLink: "Datenschutzerklärung",
+    consentBefore: "Ich akzeptiere die ",
+    consentMiddle: " und habe die ",
+    consentAfter: " gelesen.",
+  },
+  account: {
+    navLink: "Konto & Daten",
+    title: "Konto & Daten",
+    intro: "Hier kannst du deine Datenschutzrechte selbst ausüben (Art. 15, 17 und 20 DSGVO).",
+    exportHeading: "Daten herunterladen",
+    exportText:
+      "Lädt alle zu deinem Konto gespeicherten Daten als JSON-Datei herunter: Konto, Analysen mit Reports, " +
+      "Credit-Buchungen und API-Keys (ohne geheime Schlüssel).",
+    exportButton: "Meine Daten herunterladen",
+    exporting: "Wird vorbereitet…",
+    deleteHeading: "Konto löschen",
+    deleteText:
+      "Löscht dein Konto endgültig – mit allen Analysen, Reports, gespeicherten Bildern, API-Keys und Credits. " +
+      "Das lässt sich nicht rückgängig machen.",
+    deleteConfirmLabel: "Zur Bestätigung deine E-Mail-Adresse eingeben",
+    deleteButton: "Konto endgültig löschen",
+    deleting: "Wird gelöscht…",
+  },
   apiKeys: {
     navLink: "API & Credits",
     title: "API & Credits",

@@ -4,6 +4,7 @@ import "./globals.css";
 import { getMessages } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { getRequestLocale } from "@/lib/i18n/server";
+import { LegalFooter } from "@/components/legal/LegalFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           React hydrates; this silences only that element's attribute mismatch. */}
       <body className="flex min-h-full flex-col text-stone-900" suppressHydrationWarning>
         <LocaleProvider locale={locale}>{children}</LocaleProvider>
+        <LegalFooter />
       </body>
     </html>
   );

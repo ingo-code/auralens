@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 /** Credit balance and limits, so integrations can check before uploading. */
 export const GET = apiRoute(async (ctx) => {
   const principal = await authenticate(ctx, { scope: "analyses:read" });
-  enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
+  await enforceRateLimit(ctx, `v1:read:${principal.userId}`, API_RATE_LIMITS.read);
 
   // Refunds of interrupted jobs must show up in the balance.
   await failStaleJobs(principal.userId);

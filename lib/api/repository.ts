@@ -294,3 +294,88 @@ export async function getCreditBalance(userId: string): Promise<number> {
   if (error) fail("getCreditBalance", error);
   return Number(data ?? 0);
 }
+
+// ---------------------------------------------------------------------------
+// Data subject rights (GDPR Art. 15, 17, 20)
+// ---------------------------------------------------------------------------
+
+/** Bucket of the legacy single-image history ("Archiv"); objects live under `${userId}/`. */
+const LEGACY_IMAGE_BUCKET = "analysis-images";
+
+/**
+ * Everything stored about one user, in a portable JSON shape. Secrets stay
+ * out: no password hash (not readable anyway) and no API key hashes.
+ */
+export async function exportUserData(userId: string) {
+  const db = getAdminClient();
+  const [user, jobs, keys, ledger, legacy] = await Promise.all([
+    db.auth.admin.getUserById(userId),
+    db.from("analysis_jobs").select("*").eq("user_id", userId).order("created_at"),
+    db
+      .from("api_keys")
+      .select("id, name, prefix, scopes, created_at, last_used_at, revoked_at")
+      .eq("user_id", userId)
+      .order("created_at"),
+    db.from("credit_ledger").select("delta, reason, analysis_id, created_at").eq("user_id", userId).order("id"),
+    db.from("analyses").select("id, report, image_path, created_at").eq("user_id", userId).order("created_at"),
+  ]);
+  if (user.error) throw new Error(`[api-repository] exportUserData(user): ${user.error.message}`);
+  for (const [name, result] of Object.entries({ jobs, keys, ledger, legacy })) {
+    if (result.error) fail(`exportUserData(${name})`, result.error);
+  }
+
+  const account = user.data.user;
+  return {
+    exportedAt: new Date().toISOString(),
+    account: {
+      id: account.id,
+      email: account.email ?? null,
+      createdAt: account.created_at,
+      lastSignInAt: account.last_sign_in_at ?? null,
+      metadata: account.user_metadata ?? {},
+    },
+    analyses: jobs.data ?? [],
+    apiKeys: keys.data ?? [],
+    creditTransactions: ledger.data ?? [],
+    archivedAnalyses: legacy.data ?? [],
+  };
+}
+
+/**
+ * Deletes the account and everything attached to it. Stored images are
+ * removed first (storage objects don't cascade); deleting the auth user then
+ * cascades to analyses, jobs, API keys and the credit ledger.
+ */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const db = getAdminClient();
+  const storage = db.storage.from(LEGACY_IMAGE_BUCKET);
+
+  for (;;) {
+    const { data: objects, error } = await storage.list(userId, { limit: 100 });
+    if (error) throw new Error(`[api-repository] deleteUserAccount(list): ${error.message}`);
+    if (!objects || objects.length === 0) break;
+    const { error: removeError } = await storage.remove(objects.map((object) => `${userId}/${object.name}`));
+    if (removeError) throw new Error(`[api-repository] deleteUserAccount(remove): ${removeError.message}`);
+  }
+
+  const { error } = await db.auth.admin.deleteUser(userId);
+  if (error) throw new Error(`[api-repository] deleteUserAccount(user): ${error.message}`);
+}
+
+// ---------------------------------------------------------------------------
+// Rate limiting (shared across server instances)
+// ---------------------------------------------------------------------------
+
+export type SharedRateLimitHit = { success: boolean; remaining: number; resetAt: number };
+
+/** Counts one request against `key` in the shared fixed-window store. */
+export async function hitRateLimit(key: string, limit: number, windowMs: number): Promise<SharedRateLimitHit> {
+  const { data, error } = await getAdminClient().rpc("hit_rate_limit", {
+    p_key: key,
+    p_limit: limit,
+    p_window_ms: windowMs,
+  });
+  if (error) fail("hitRateLimit", error);
+  const row = (Array.isArray(data) ? data[0] : data) as { success: boolean; remaining: number; reset_at: string };
+  return { success: row.success, remaining: row.remaining, resetAt: Date.parse(row.reset_at) };
+}
