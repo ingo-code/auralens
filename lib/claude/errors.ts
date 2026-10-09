@@ -77,6 +77,11 @@ export function mapAnalysisError(error: unknown, t: Messages): MappedError {
     if (/grammar|schema|output_config/i.test(error.message)) {
       return { status: 500, message: t.errors.internalConfig, code: "internal_error" };
     }
+    // An exhausted Anthropic account balance also arrives as a 400 - it is an
+    // operator problem, so the user must not be told their image is at fault.
+    if (/credit balance|billing/i.test(error.message)) {
+      return { status: 503, message: t.errors.claudeUnavailable, code: "upstream_unavailable" };
+    }
     return { status: 400, message: t.errors.imageNotProcessable, code: "image_not_processable" };
   }
   if (error instanceof Anthropic.APIError) {

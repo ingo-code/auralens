@@ -33,6 +33,14 @@ describe("mapAnalysisError", () => {
     expect(mapped.message).toMatch(/Konfigurationsfehler/);
   });
 
+  it("meldet ein leeres Anthropic-Guthaben als Dienststörung statt als Bildfehler", () => {
+    const mapped = mapAnalysisError(
+      badRequest("Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing."),
+      de
+    );
+    expect(mapped).toEqual({ status: 503, message: de.errors.claudeUnavailable, code: "upstream_unavailable" });
+  });
+
   it("meldet sonstige Bad Requests weiterhin als Bildproblem", () => {
     const mapped = mapAnalysisError(badRequest("Could not process image"), de);
     expect(mapped.status).toBe(400);
