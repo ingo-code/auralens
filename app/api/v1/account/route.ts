@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticate } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
-import { apiRoute, enforceRateLimit, readJsonBody } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody } from "@/lib/api/handler";
 import { API_RATE_LIMITS } from "@/lib/api/limits";
 import { deleteUserAccount } from "@/lib/api/repository";
 import { createClient } from "@/lib/supabase/server";
@@ -32,3 +32,5 @@ export const DELETE = apiRoute(async (ctx) => {
   console.info(`[api] request_id=${ctx.requestId} Konto gelöscht`);
   return new NextResponse(null, { status: 204 });
 });
+
+export const { GET, POST, PUT, PATCH } = methodNotAllowed("DELETE");

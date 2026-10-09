@@ -61,16 +61,69 @@ describe("Fehler im RFC-9457-Format", () => {
     await expect(fetchUsage(t)).rejects.toMatchObject({ code: "network_error", message: t.errors.serverUnreachable });
   });
 
-  it("schickt den Idempotency-Key und alle Bilder im Feld 'images'", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(json(analysis("queued"), 202));
+  it("lädt die Bilder per signierter URL hoch und startet die Analyse mit den Pfaden", async () => {
+    const slot = (index: number, name: string) => ({
+      index,
+      name,
+      path: `u/b/${index}-${name}`,
+      uploadUrl: `https://storage.example/${index}`,
+      token: "tok",
+      contentType: "image/jpeg",
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(json({ object: "upload_batch", expiresAt: "x", uploads: [slot(1, "a.jpg"), slot(2, "b.jpg")] }, 201))
+      .mockResolvedValueOnce(json({ Key: "1" }))
+      .mockResolvedValueOnce(json({ Key: "2" }))
+      .mockResolvedValueOnce(json(analysis("queued"), 202));
+    vi.stubGlobal("fetch", fetchMock);
+    const files = [new File(["a"], "a.jpg", { type: "image/jpeg" }), new File(["b"], "b.jpg", { type: "image/jpeg" })];
+
+    await startAnalysis(files, t, { idempotencyKey: "key-1" });
+
+    const [uploadsUrl, uploadsInit] = fetchMock.mock.calls[0];
+    expect(uploadsUrl).toBe("/api/v1/uploads");
+    expect(JSON.parse(uploadsInit.body)).toEqual({
+      files: [
+        { name: "a.jpg", type: "image/jpeg", size: 1 },
+        { name: "b.jpg", type: "image/jpeg", size: 1 },
+      ],
+    });
+
+    const puts = fetchMock.mock.calls.slice(1, 3);
+    expect(puts.map(([url, init]) => [url, init.method, init.body, init.credentials])).toEqual([
+      ["https://storage.example/1", "PUT", files[0], "omit"],
+      ["https://storage.example/2", "PUT", files[1], "omit"],
+    ]);
+
+    const [url, init] = fetchMock.mock.calls[3];
+    expect(url).toBe("/api/v1/analyses");
+    expect(init.headers).toEqual({ "Content-Type": "application/json", "Idempotency-Key": "key-1" });
+    expect(JSON.parse(init.body)).toEqual({
+      uploads: [
+        { path: "u/b/1-a.jpg", name: "a.jpg" },
+        { path: "u/b/2-b.jpg", name: "b.jpg" },
+      ],
+    });
+  });
+
+  it("meldet einen fehlgeschlagenen Upload mit der Bildnummer und startet keine Analyse", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        json({
+          object: "upload_batch",
+          expiresAt: "x",
+          uploads: [{ index: 1, name: "a.jpg", path: "p", uploadUrl: "https://s/1", token: "t", contentType: "image/jpeg" }],
+        }, 201)
+      )
+      .mockResolvedValueOnce(new Response("denied", { status: 400 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await startAnalysis([new File(["a"], "a.jpg"), new File(["b"], "b.jpg")], t, { idempotencyKey: "key-1" });
-
-    const [url, init] = fetchMock.mock.calls[0];
-    expect(url).toBe("/api/v1/analyses");
-    expect(init.headers).toEqual({ "Idempotency-Key": "key-1" });
-    expect((init.body as FormData).getAll("images")).toHaveLength(2);
+    await expect(startAnalysis([new File(["a"], "a.jpg", { type: "image/jpeg" })], t, { idempotencyKey: "k" })).rejects.toMatchObject({
+      message: t.errors.uploadFailed(1),
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 

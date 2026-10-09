@@ -3,6 +3,7 @@ import type { StyleAnalysis } from "@/lib/analysis-schema";
 import type { AnalysisStep } from "@/lib/analysis-steps";
 import type { AnalysisErrorCode } from "@/lib/claude/errors";
 import type { SeriesAnalysis, SeriesImageFile } from "@/lib/series-analysis-schema";
+import { removeAllUploads } from "@/lib/api/uploads";
 import { getAdminClient } from "@/lib/supabase/admin";
 
 /*
@@ -357,6 +358,8 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     const { error: removeError } = await storage.remove(objects.map((object) => `${userId}/${object.name}`));
     if (removeError) throw new Error(`[api-repository] deleteUserAccount(remove): ${removeError.message}`);
   }
+
+  await removeAllUploads(userId);
 
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) throw new Error(`[api-repository] deleteUserAccount(user): ${error.message}`);

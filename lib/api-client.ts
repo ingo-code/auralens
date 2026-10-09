@@ -1,5 +1,5 @@
 import type { ApiErrorCode, ProblemDetails } from "@/lib/api/errors";
-import type { AnalysisResource, UsageResource } from "@/lib/api/resources";
+import type { AnalysisResource, UploadBatchResource, UsageResource } from "@/lib/api/resources";
 import type { Messages } from "@/lib/i18n";
 
 /*
@@ -58,23 +58,51 @@ async function request<T>(url: string, t: Messages, init?: RequestInit): Promise
 
 /**
  * Starts an analysis (1 image = single, 2-10 = series); resolves with the
- * queued job. Pass the same `idempotencyKey` when retrying the same
- * selection, so a request that did reach the server isn't started (and
- * billed) twice.
+ * queued job. The files go straight to storage through signed upload URLs
+ * (POST /api/v1/uploads), so the host's request-size cap (Vercel: 4.5 MB)
+ * doesn't apply; only their paths are sent to POST /api/v1/analyses.
+ * Pass the same `idempotencyKey` when retrying the same selection, so a
+ * request that did reach the server isn't started (and billed) twice.
  */
-export function startAnalysis(
+export async function startAnalysis(
   files: File[],
   t: Messages,
   options: { idempotencyKey: string; signal?: AbortSignal }
 ): Promise<AnalysisResource> {
-  const form = new FormData();
-  files.forEach((file) => form.append("images", file));
+  const { idempotencyKey, signal } = options;
+  const batch = await request<UploadBatchResource>("/api/v1/uploads", t, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ files: files.map((file) => ({ name: file.name, type: file.type, size: file.size })) }),
+    signal,
+  });
+
+  await Promise.all(batch.uploads.map((slot, i) => uploadFile(slot.uploadUrl, files[i], slot.index, t, signal)));
+
   return request<AnalysisResource>("/api/v1/analyses", t, {
     method: "POST",
-    body: form,
-    headers: { "Idempotency-Key": options.idempotencyKey },
-    signal: options.signal,
+    headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+    body: JSON.stringify({ uploads: batch.uploads.map((slot) => ({ path: slot.path, name: slot.name })) }),
+    signal,
   });
+}
+
+/** PUTs one file to its signed storage URL (cross-origin, no cookies). */
+async function uploadFile(url: string, file: File, index: number, t: Messages, signal?: AbortSignal): Promise<void> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+      credentials: "omit",
+      signal,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    throw new ApiProblem(0, "network_error", t.errors.uploadFailed(index));
+  }
+  if (!res.ok) throw new ApiProblem(res.status, "internal_error", t.errors.uploadFailed(index));
 }
 
 function fetchAnalysis(id: string, t: Messages, signal?: AbortSignal): Promise<AnalysisResource> {

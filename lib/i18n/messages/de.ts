@@ -289,6 +289,7 @@ export const de = {
       `Bild ${n} (${name}): Nicht unterstützter Dateityp. Erlaubt sind JPEG, PNG, WEBP und GIF.`,
     fileOver10mb: (n: number, name: string) => `Bild ${n} (${name}) ist größer als 10 MB.`,
     selectionOver50mb: "Die Bilder sind zusammen größer als 50 MB.",
+    uploadFailed: (n: number) => `Bild ${n} konnte nicht hochgeladen werden. Bitte prüfe deine Verbindung und versuche es erneut.`,
     serverUnreachable: "Der Server ist nicht erreichbar. Läuft `npm run dev`?",
     unexpectedResponse: (status: number, snippet: string) =>
       `Unerwartete Antwort vom Server (HTTP ${status}${snippet ? `: ${snippet}` : ""}).`,
@@ -302,7 +303,12 @@ export const de = {
     apiCrossOrigin: "Anfrage von fremder Herkunft abgelehnt.",
     apiNotConfigured: "Die API ist nicht konfiguriert. Bitte SUPABASE_SERVICE_ROLE_KEY setzen.",
     apiInternal: "Interner Serverfehler. Bitte später erneut versuchen.",
-    apiExpectedImages: "Ungültige Anfrage: Erwartet wird multipart/form-data mit 1–10 Bildern im Feld 'images'.",
+    apiExpectedImages:
+      "Ungültige Anfrage: Erwartet wird JSON mit 'uploads' aus POST /api/v1/uploads oder multipart/form-data mit 1–10 Bildern im Feld 'images'.",
+    apiUploadNotFound: (n: number) => `Bild ${n}: Upload nicht gefunden oder abgelaufen. Bitte erneut hochladen.`,
+    apiUploadForeign: (n: number) => `Bild ${n}: Ungültiger Upload-Pfad.`,
+    apiMethodNotAllowed: (method: string, allow: string) => `Methode ${method} wird hier nicht unterstützt. Erlaubt: ${allow}.`,
+    apiRouteNotFound: "Unbekannter API-Endpunkt. Siehe docs/API-v1.md.",
     apiNoImages: "Keine Bilder gefunden. Bitte 1–10 Bilder im Feld 'images' senden.",
     apiInvalidIdempotencyKey: "Ungültiger Idempotency-Key. Erlaubt sind 1–255 Zeichen.",
     apiIdempotencyConflict: "Dieser Idempotency-Key wurde bereits für eine Anfrage mit anderen Bildern verwendet.",
@@ -372,6 +378,7 @@ export const de = {
     too_many_active_analyses: "Es laufen bereits zu viele Analysen. Bitte warte, bis eine abgeschlossen ist.",
     rate_limited: "Zu viele Anfragen. Bitte warte einen Moment.",
     gone: "Diese Funktion wurde abgeschaltet.",
+    method_not_allowed: "Diese Aktion wird hier nicht unterstützt.",
     internal_error: "Serverfehler. Bitte versuche es später erneut.",
   } satisfies Record<ApiErrorCode, string>,
   legal: {
@@ -381,7 +388,7 @@ export const de = {
     closedBeta: "Geschlossener Beta-Test · kostenlos · keine Zahlungen",
     germanOnly: "Die rechtlichen Texte sind nur auf Deutsch verfügbar; die deutsche Fassung ist maßgeblich.",
     uploadNotice:
-      "Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens nicht gespeichert; " +
+      "Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens nicht dauerhaft gespeichert; " +
       "Metadaten wie GPS werden vorher entfernt. Lade nur Bilder hoch, an denen du die Rechte hast – " +
       "erkennbare Personen nur mit deren Einwilligung.",
     uploadNoticeLink: "Datenschutzerklärung",

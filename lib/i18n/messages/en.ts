@@ -271,6 +271,7 @@ export const en: Messages = {
     fileUnsupported: (n, name) => `Image ${n} (${name}): Unsupported file type. Allowed are JPEG, PNG, WEBP and GIF.`,
     fileOver10mb: (n, name) => `Image ${n} (${name}) is larger than 10 MB.`,
     selectionOver50mb: "The images are larger than 50 MB in total.",
+    uploadFailed: (n) => `Image ${n} could not be uploaded. Please check your connection and try again.`,
     serverUnreachable: "The server is unreachable. Is `npm run dev` running?",
     unexpectedResponse: (status, snippet) =>
       `Unexpected response from the server (HTTP ${status}${snippet ? `: ${snippet}` : ""}).`,
@@ -284,7 +285,12 @@ export const en: Messages = {
     apiCrossOrigin: "Cross-origin request rejected.",
     apiNotConfigured: "The API is not configured. Please set SUPABASE_SERVICE_ROLE_KEY.",
     apiInternal: "Internal server error. Please try again later.",
-    apiExpectedImages: "Invalid request: expected multipart/form-data with 1–10 images in the 'images' field.",
+    apiExpectedImages:
+      "Invalid request: expected JSON with 'uploads' from POST /api/v1/uploads, or multipart/form-data with 1–10 images in the 'images' field.",
+    apiUploadNotFound: (n) => `Image ${n}: upload not found or expired. Please upload again.`,
+    apiUploadForeign: (n) => `Image ${n}: invalid upload path.`,
+    apiMethodNotAllowed: (method, allow) => `Method ${method} is not supported here. Allowed: ${allow}.`,
+    apiRouteNotFound: "Unknown API endpoint. See docs/API-v1.md.",
     apiNoImages: "No images found. Please send 1–10 images in the 'images' field.",
     apiInvalidIdempotencyKey: "Invalid Idempotency-Key. 1–255 characters are allowed.",
     apiIdempotencyConflict: "This Idempotency-Key was already used for a request with different images.",
@@ -351,6 +357,7 @@ export const en: Messages = {
     too_many_active_analyses: "Too many analyses are already running. Please wait until one has finished.",
     rate_limited: "Too many requests. Please wait a moment.",
     gone: "This feature has been retired.",
+    method_not_allowed: "This action is not supported here.",
     internal_error: "Server error. Please try again later.",
   },
   legal: {
@@ -360,7 +367,7 @@ export const en: Messages = {
     closedBeta: "Closed beta · free of charge · no payments",
     germanOnly: "The legal texts are only available in German; the German version is binding.",
     uploadNotice:
-      "Your images are sent to Anthropic (USA) for analysis and are not stored by AuraLens; metadata such as " +
+      "Your images are sent to Anthropic (USA) for analysis and are not stored permanently by AuraLens; metadata such as " +
       "GPS is removed beforehand. Only upload images you hold the rights to – recognizable people only with " +
       "their consent.",
     uploadNoticeLink: "Privacy policy",

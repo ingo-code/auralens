@@ -81,6 +81,22 @@ export async function enforceRateLimit(ctx: ApiContext, key: string, options: Ra
   }
 }
 
+type RouteHandler = (request: NextRequest, context: RouteContext<Record<string, string | string[]>>) => Promise<Response>;
+
+/**
+ * Handlers for the methods a route does not support, so clients get a
+ * problem+json 405 with an `Allow` header instead of Next.js' empty 405.
+ * Usage: `export const { PUT, PATCH } = methodNotAllowed("GET, POST");`
+ */
+export function methodNotAllowed(allow: string): Record<"GET" | "POST" | "PUT" | "PATCH" | "DELETE", RouteHandler> {
+  const handler = apiRoute<Record<string, string | string[]>>(async (ctx) => {
+    throw new ApiError(405, "method_not_allowed", ctx.t.errors.apiMethodNotAllowed(ctx.request.method, allow), {
+      Allow: allow,
+    });
+  });
+  return { GET: handler, POST: handler, PUT: handler, PATCH: handler, DELETE: handler };
+}
+
 async function sharedRateLimit(ctx: ApiContext, key: string, options: RateLimitOptions): Promise<RateLimitResult> {
   try {
     const hit = await hitRateLimit(key, options.limit, options.windowMs);

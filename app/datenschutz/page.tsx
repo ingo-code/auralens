@@ -32,7 +32,7 @@ export default function DatenschutzPage() {
         <li>AuraLens ist ein geschlossener, kostenloser Beta-Test. Es werden keine Zahlungsdaten verarbeitet.</li>
         <li>Es gibt <strong>keine Werbung, kein Tracking, keine Analyse-Tools</strong> und keine Weitergabe zu Werbezwecken.</li>
         <li>Es werden nur technisch notwendige Cookies gesetzt (Abschnitt 8) – deshalb gibt es kein Cookie-Banner.</li>
-        <li>Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens <strong>nicht gespeichert</strong> (Abschnitt 5).</li>
+        <li>Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens <strong>nicht dauerhaft gespeichert</strong> (Abschnitt 5).</li>
       </ul>
 
       <h2>3. Hosting und Server-Protokolle</h2>
@@ -62,14 +62,18 @@ export default function DatenschutzPage() {
 
       <h2>5. Bildanalyse mit Claude (Anthropic)</h2>
       <p>
-        Wenn du eine Analyse startest, werden deine Bilder auf unserem Server verkleinert und als JPEG neu erzeugt.
+        Wenn du eine Analyse startest, lädt dein Browser die Bilder zunächst verschlüsselt in einen privaten
+        Zwischenspeicher bei Supabase (Server in Frankfurt, EU). Unser Server liest sie dort einmal ein und löscht sie
+        sofort; nicht analysierte Uploads werden spätestens nach einer Stunde automatisch gelöscht. Danach werden die
+        Bilder auf unserem Server verkleinert und als JPEG neu erzeugt.
         Dabei werden eingebettete Metadaten (z. B. GPS-Position, Kameradaten) entfernt. Anschließend werden die Bilder
         an die KI-Schnittstelle von <strong>Anthropic, PBC (San Francisco, USA)</strong> übermittelt, die den Report
         erstellt.
       </p>
       <ul>
         <li>
-          <strong>AuraLens speichert deine Bilder nicht.</strong> Sie liegen nur während der Analyse im Arbeitsspeicher.
+          <strong>AuraLens speichert deine Bilder nicht dauerhaft.</strong> Außer im oben beschriebenen kurzen
+          Zwischenspeicher liegen sie nur während der Analyse im Arbeitsspeicher.
           Gespeichert werden der Report, Dateinamen, Pixelmaße und der Bearbeitungsstatus.
         </li>
         <li>

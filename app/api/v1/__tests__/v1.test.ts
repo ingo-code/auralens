@@ -26,6 +26,12 @@ const repo = vi.hoisted(() => ({
   exportUserData: vi.fn(),
   deleteUserAccount: vi.fn(),
 }));
+const uploadsMock = vi.hoisted(() => ({
+  createUploadSlots: vi.fn(),
+  downloadUploads: vi.fn(),
+  removeUploads: vi.fn(),
+  purgeStaleUploads: vi.fn(),
+}));
 const getClaimsMock = vi.hoisted(() => vi.fn());
 const getUserMock = vi.hoisted(() => vi.fn());
 const backgroundTasks = vi.hoisted(() => [] as (() => Promise<void>)[]);
@@ -34,6 +40,10 @@ const parseMock = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/api/repository", async () => {
   const actual = await vi.importActual<typeof import("@/lib/api/repository")>("@/lib/api/repository");
   return { ...actual, ...repo };
+});
+vi.mock("@/lib/api/uploads", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/api/uploads")>("@/lib/api/uploads");
+  return { ...actual, ...uploadsMock };
 });
 vi.mock("@/lib/supabase/server", () => ({
   createClient: async () => ({ auth: { getClaims: getClaimsMock, getUser: getUserMock } }),
@@ -59,6 +69,8 @@ vi.mock("@anthropic-ai/sdk", async () => {
 const analyses = await import("@/app/api/v1/analyses/route");
 const analysis = await import("@/app/api/v1/analyses/[id]/route");
 const usage = await import("@/app/api/v1/usage/route");
+const uploads = await import("@/app/api/v1/uploads/route");
+const unknownRoute = await import("@/app/api/v1/[...path]/route");
 const apiKeys = await import("@/app/api/v1/api-keys/route");
 const apiKey = await import("@/app/api/v1/api-keys/[id]/route");
 const account = await import("@/app/api/v1/account/route");
@@ -146,6 +158,8 @@ beforeEach(() => {
   vi.spyOn(console, "info").mockImplementation(() => {});
   repo.findActiveApiKeyByHash.mockResolvedValue(keyRow());
   repo.failStaleJobs.mockResolvedValue(0);
+  uploadsMock.removeUploads.mockResolvedValue(undefined);
+  uploadsMock.purgeStaleUploads.mockResolvedValue(undefined);
   repo.findJobByIdempotencyKey.mockResolvedValue(null);
   getClaimsMock.mockResolvedValue({ data: null });
 });
@@ -574,5 +588,93 @@ describe("Datenschutz-Selbstbedienung (/api/v1/account)", () => {
     );
     expect(ok.status).toBe(204);
     expect(repo.deleteUserAccount).toHaveBeenCalledWith(USER_ID);
+  });
+});
+
+describe("Direkt-Upload über signierte URLs", () => {
+  const UPLOAD_PATH = (i: number, name: string) => `${USER_ID}/1760000000000-44444444-4444-4444-8444-444444444444/${i}-${name}`;
+  const jsonRequest = (path: string, body: unknown, headers = withKey()) =>
+    request(path, { method: "POST", headers: { ...headers, "content-type": "application/json" }, body: JSON.stringify(body) });
+
+  it("vergibt pro Bild eine Upload-URL", async () => {
+    uploadsMock.createUploadSlots.mockImplementation(async (_user: string, names: string[]) =>
+      names.map((name, i) => ({ index: i + 1, name, path: UPLOAD_PATH(i + 1, name), uploadUrl: `https://s/${i}`, token: "t" }))
+    );
+
+    const res = await uploads.POST(
+      jsonRequest("/uploads", { files: [{ name: "a.jpg", type: "image/jpeg", size: 8_000_000 }, { name: "b.png", type: "image/png", size: 9_000_000 }] }),
+      noParams
+    );
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.object).toBe("upload_batch");
+    expect(body.uploads.map((u: { contentType: string }) => u.contentType)).toEqual(["image/jpeg", "image/png"]);
+    expect(uploadsMock.createUploadSlots).toHaveBeenCalledWith(USER_ID, ["a.jpg", "b.png"]);
+  });
+
+  it("lehnt falsche Typen und zu große Bilder schon vor dem Upload ab", async () => {
+    const wrongType = await uploads.POST(jsonRequest("/uploads", { files: [{ name: "a.txt", type: "text/plain", size: 10 }] }), noParams);
+    const tooBig = await uploads.POST(jsonRequest("/uploads", { files: [{ name: "a.jpg", type: "image/jpeg", size: 11 * 1024 * 1024 }] }), noParams);
+
+    expect(wrongType.status).toBe(400);
+    expect(tooBig.status).toBe(413);
+    expect(uploadsMock.createUploadSlots).not.toHaveBeenCalled();
+  });
+
+  it("startet eine Analyse aus hochgeladenen Bildern und löscht die Uploads danach", async () => {
+    uploadsMock.downloadUploads.mockImplementation(async (list: { path: string; name: string }[]) =>
+      list.map(({ path, name }) => ({ path, name, file: pngFile(name) }))
+    );
+    repo.createAnalysisJob.mockImplementation(async (input) => jobRow({ type: input.type, files: input.files, credits: input.credits }));
+    const paths = [UPLOAD_PATH(1, "a.png"), UPLOAD_PATH(2, "b.png")];
+
+    const res = await analyses.POST(
+      jsonRequest("/analyses", { uploads: [{ path: paths[0], name: "Strand Ü.png" }, paths[1]] }),
+      noParams
+    );
+
+    expect(res.status).toBe(202);
+    const body = await res.json();
+    expect(body.files.map((f: { name: string }) => f.name)).toEqual(["Strand Ü.png", "b.png"]);
+    expect(uploadsMock.removeUploads).toHaveBeenCalledWith(paths);
+  });
+
+  it("akzeptiert keine Upload-Pfade anderer Nutzer", async () => {
+    const foreign = UPLOAD_PATH(1, "a.png").replace(USER_ID, "99999999-9999-4999-8999-999999999999");
+
+    const res = await analyses.POST(jsonRequest("/analyses", { uploads: [foreign] }), noParams);
+
+    expect(res.status).toBe(400);
+    expect(uploadsMock.downloadUploads).not.toHaveBeenCalled();
+  });
+
+  it("meldet abgelaufene Uploads mit der Bildnummer", async () => {
+    const { UploadNotFoundError } = await import("@/lib/api/uploads");
+    uploadsMock.downloadUploads.mockRejectedValue(new UploadNotFoundError(UPLOAD_PATH(2, "b.png")));
+
+    const res = await analyses.POST(jsonRequest("/analyses", { uploads: [UPLOAD_PATH(1, "a.png"), UPLOAD_PATH(2, "b.png")] }), noParams);
+
+    expect(res.status).toBe(400);
+    expect((await res.json()).detail).toMatch(/Bild 2/);
+    expect(repo.createAnalysisJob).not.toHaveBeenCalled();
+  });
+});
+
+describe("Unbekannte Pfade und Methoden", () => {
+  it("antwortet auf nicht unterstützte Methoden mit 405, Allow-Header und Problem-Details", async () => {
+    const res = await usage.POST(request("/usage", { method: "POST", headers: withKey() }), noParams);
+
+    expect(res.status).toBe(405);
+    expect(res.headers.get("allow")).toBe("GET");
+    expect(res.headers.get("content-type")).toBe("application/problem+json");
+    expect((await res.json()).code).toBe("method_not_allowed");
+  });
+
+  it("antwortet auf unbekannte API-Pfade mit 404 als JSON", async () => {
+    const res = await unknownRoute.GET(request("/gibtsnicht"), params({ path: ["gibtsnicht"] }));
+
+    expect(res.status).toBe(404);
+    expect((await res.json()).code).toBe("not_found");
   });
 });

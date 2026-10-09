@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/api/auth";
-import { apiRoute, enforceRateLimit } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, methodNotAllowed } from "@/lib/api/handler";
 import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
 import { failStaleJobs, getCreditBalance } from "@/lib/api/repository";
 import type { UsageResource } from "@/lib/api/resources";
@@ -23,7 +23,10 @@ export const GET = apiRoute(async (ctx) => {
       maxImagesPerAnalysis: API_LIMITS.maxImagesPerAnalysis,
       maxImageBytes: API_LIMITS.maxImageBytes,
       maxTotalUploadBytes: API_LIMITS.maxTotalUploadBytes,
+      maxDirectUploadBytes: API_LIMITS.maxDirectUploadBytes,
       maxActiveAnalyses: API_LIMITS.maxActiveAnalyses,
     },
   });
 });
+
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed("GET");

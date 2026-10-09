@@ -3,7 +3,7 @@ import { z } from "zod";
 import { API_SCOPES, generateApiKey } from "@/lib/api/api-keys";
 import { authenticate } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
-import { apiRoute, enforceRateLimit, readJsonBody } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody } from "@/lib/api/handler";
 import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
 import { insertApiKey, listApiKeys } from "@/lib/api/repository";
 import {
@@ -67,3 +67,5 @@ export const POST = apiRoute(async (ctx) => {
     { status: 201, headers: { "Cache-Control": "no-store" } }
   );
 });
+
+export const { PUT, PATCH, DELETE } = methodNotAllowed("GET, POST");

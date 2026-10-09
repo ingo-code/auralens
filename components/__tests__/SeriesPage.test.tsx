@@ -49,8 +49,28 @@ const problem = (status: number, code: string, detail: string) =>
 type Route = (url: string, init?: RequestInit) => Response | undefined;
 let fetchMock: ReturnType<typeof vi.fn>;
 
+/** Signed-URL upload step of startAnalysis: hands out slots and accepts the PUTs. */
+function uploadStep(url: string, init?: RequestInit): Response | undefined {
+  if (url === "/api/v1/uploads" && init?.method === "POST") {
+    const { files } = JSON.parse(init.body as string) as { files: { name: string; type: string }[] };
+    const uploads = files.map((file, i) => ({
+      index: i + 1,
+      name: file.name,
+      path: `u/b/${i + 1}-${file.name}`,
+      uploadUrl: `https://storage.test/${i + 1}`,
+      token: "t",
+      contentType: file.type,
+    }));
+    return json({ object: "upload_batch", expiresAt: "x", uploads }, 201);
+  }
+  if (url.startsWith("https://storage.test/")) return json({ Key: url });
+}
+
 function routeFetch(handler: Route) {
-  fetchMock = vi.fn(async (url: string, init?: RequestInit) => handler(url, init) ?? new Response("not mocked", { status: 500 }));
+  fetchMock = vi.fn(
+    async (url: string, init?: RequestInit) =>
+      uploadStep(url, init) ?? handler(url, init) ?? new Response("not mocked", { status: 500 })
+  );
   vi.stubGlobal("fetch", fetchMock);
 }
 
@@ -100,9 +120,10 @@ describe("Serien-Seite mit API v1", () => {
     expect(screen.getByText("Markt-Fit, Master-Palette & Stock-SEO").closest("li")).toHaveAttribute("data-state", "active");
     expect(window.location.search).toBe("?analysis=job-1");
 
-    const post = fetchMock.mock.calls.find(([, init]) => init?.method === "POST")!;
+    const post = fetchMock.mock.calls.find(([url, init]) => url === "/api/v1/analyses" && init?.method === "POST")!;
     expect((post[1].headers as Record<string, string>)["Idempotency-Key"]).toMatch(/[0-9a-f-]{36}/);
-    expect((post[1].body as FormData).getAll("images")).toHaveLength(3);
+    expect(JSON.parse(post[1].body as string).uploads).toHaveLength(3);
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).startsWith("https://storage.test/"))).toHaveLength(3);
 
     await act(() => vi.advanceTimersByTimeAsync(2600));
 

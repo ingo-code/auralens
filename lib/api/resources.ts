@@ -64,8 +64,25 @@ export type UsageResource = {
     maxImagesPerAnalysis: number;
     maxImageBytes: number;
     maxTotalUploadBytes: number;
+    maxDirectUploadBytes: number | null;
     maxActiveAnalyses: number;
   };
+};
+
+/** Answer of POST /api/v1/uploads. */
+export type UploadBatchResource = {
+  object: "upload_batch";
+  /** Objects not analyzed by then are deleted. */
+  expiresAt: string;
+  uploads: {
+    index: number;
+    name: string;
+    path: string;
+    /** PUT the raw file here with the given Content-Type. */
+    uploadUrl: string;
+    token: string;
+    contentType: string;
+  }[];
 };
 
 const ERROR_MESSAGES: Record<AnalysisErrorCode, ErrorMessageKey> = {

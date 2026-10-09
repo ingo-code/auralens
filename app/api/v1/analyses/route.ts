@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { authenticate, type Principal } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
-import { apiRoute, enforceRateLimit, type ApiContext } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody, type ApiContext } from "@/lib/api/handler";
 import { enqueueAnalysis } from "@/lib/api/jobs";
 import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
 import { decodeCursor, encodeCursor } from "@/lib/api/pagination";
@@ -17,6 +17,7 @@ import {
   type AnalysisJobRow,
 } from "@/lib/api/repository";
 import { toAnalysisResource, type AnalysisResource, type ListResource } from "@/lib/api/resources";
+import { downloadUploads, isOwnUploadPath, removeUploads, UploadNotFoundError } from "@/lib/api/uploads";
 import { compressImageForAnalysis, type ProcessedImage } from "@/lib/image-processing";
 import { validateImageFile } from "@/lib/image-validation";
 import { describeValidationError } from "@/lib/series-api";
@@ -44,18 +45,7 @@ export const POST = apiRoute(async (ctx) => {
 
   const idempotencyKey = readIdempotencyKey(ctx);
 
-  if (Number(ctx.request.headers.get("content-length")) > MAX_BODY_SIZE) {
-    throw new ApiError(413, "payload_too_large", t.errors.seriesTotalTooLarge);
-  }
-
-  let formData: FormData;
-  try {
-    formData = await ctx.request.formData();
-  } catch {
-    throw new ApiError(400, "invalid_request", t.errors.apiExpectedImages);
-  }
-
-  const entries = formData.getAll("images");
+  const { entries, uploadPaths } = await readImageEntries(ctx, principal.userId);
   if (entries.length === 0) throw new ApiError(400, "invalid_request", t.errors.apiNoImages);
   if (entries.length > API_LIMITS.maxImagesPerAnalysis) {
     throw new ApiError(400, "invalid_request", t.errors.seriesTooMany(API_LIMITS.maxImagesPerAnalysis));
@@ -76,6 +66,8 @@ export const POST = apiRoute(async (ctx) => {
   }
 
   const buffers = await Promise.all(files.map(async (file) => Buffer.from(await file.arrayBuffer())));
+  // The images are in memory now; the transit copies must not outlive the request.
+  await removeUploads(uploadPaths);
   const requestHash = hashUpload(buffers);
 
   // A retried request must not start (and bill) a second analysis.
@@ -116,6 +108,59 @@ export const POST = apiRoute(async (ctx) => {
   });
 });
 
+const UploadsBodySchema = z.object({
+  uploads: z
+    .array(
+      z.union([
+        z.string(),
+        z.object({ path: z.string(), name: z.string().trim().min(1).max(255).optional() }),
+      ])
+    )
+    .min(1)
+    .max(API_LIMITS.maxImagesPerAnalysis),
+});
+
+/**
+ * Reads the images of a new analysis, either as JSON `{ "uploads": [...] }`
+ * referencing objects from POST /api/v1/uploads (no size cap of the host),
+ * or as multipart/form-data with the files in `images` (capped by the host,
+ * on Vercel 4.5 MB per request).
+ */
+async function readImageEntries(
+  ctx: ApiContext,
+  userId: string
+): Promise<{ entries: FormDataEntryValue[]; uploadPaths: string[] }> {
+  const { t } = ctx;
+  if ((ctx.request.headers.get("content-type") ?? "").includes("application/json")) {
+    const parsed = UploadsBodySchema.safeParse(await readJsonBody(ctx, 64 * 1024));
+    if (!parsed.success) throw new ApiError(400, "invalid_request", describeValidationError(parsed.error, t));
+
+    const uploads = parsed.data.uploads.map((upload, i) => {
+      const { path, name } = typeof upload === "string" ? { path: upload, name: undefined } : upload;
+      if (!isOwnUploadPath(userId, path)) throw new ApiError(400, "invalid_request", t.errors.apiUploadForeign(i + 1));
+      return { path, name: name ?? path.split("/")[2].replace(/^\d+-/, "") };
+    });
+    try {
+      const downloaded = await downloadUploads(uploads);
+      return { entries: downloaded.map((upload) => upload.file), uploadPaths: uploads.map((upload) => upload.path) };
+    } catch (error) {
+      if (!(error instanceof UploadNotFoundError)) throw error;
+      const index = uploads.findIndex((upload) => upload.path === error.path);
+      throw new ApiError(400, "invalid_request", t.errors.apiUploadNotFound(index + 1));
+    }
+  }
+
+  if (Number(ctx.request.headers.get("content-length")) > MAX_BODY_SIZE) {
+    throw new ApiError(413, "payload_too_large", t.errors.seriesTotalTooLarge);
+  }
+  try {
+    const formData = await ctx.request.formData();
+    return { entries: formData.getAll("images"), uploadPaths: [] };
+  } catch {
+    throw new ApiError(400, "invalid_request", t.errors.apiExpectedImages);
+  }
+}
+
 const ListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
   cursor: z.string().optional(),
@@ -150,6 +195,8 @@ export const GET = apiRoute(async (ctx) => {
     nextCursor: hasMore && last ? encodeCursor({ createdAt: last.created_at, id: last.id }) : null,
   });
 });
+
+export const { PUT, PATCH, DELETE } = methodNotAllowed("GET, POST");
 
 function readIdempotencyKey(ctx: ApiContext): string | null {
   const value = ctx.request.headers.get("idempotency-key");

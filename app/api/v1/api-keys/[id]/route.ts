@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
-import { apiRoute, enforceRateLimit, isUuid } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, isUuid, methodNotAllowed } from "@/lib/api/handler";
 import { API_RATE_LIMITS } from "@/lib/api/limits";
 import { revokeApiKey } from "@/lib/api/repository";
 
@@ -17,3 +17,5 @@ export const DELETE = apiRoute<{ id: string }>(async (ctx, { id }) => {
   }
   return new NextResponse(null, { status: 204 });
 });
+
+export const { GET, POST, PUT, PATCH } = methodNotAllowed("DELETE");

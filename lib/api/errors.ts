@@ -17,6 +17,7 @@ export type ApiErrorCode =
   | "too_many_active_analyses"
   | "rate_limited"
   | "gone"
+  | "method_not_allowed"
   | "internal_error";
 
 /** Short English summaries, fixed per code (RFC 9457 `title`). */
@@ -33,6 +34,7 @@ const TITLES: Record<ApiErrorCode, string> = {
   too_many_active_analyses: "Too many active analyses",
   rate_limited: "Rate limit exceeded",
   gone: "Endpoint retired",
+  method_not_allowed: "Method not allowed",
   internal_error: "Internal server error",
 };
 

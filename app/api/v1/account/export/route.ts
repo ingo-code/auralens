@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/api/auth";
-import { apiRoute, enforceRateLimit } from "@/lib/api/handler";
+import { apiRoute, enforceRateLimit, methodNotAllowed } from "@/lib/api/handler";
 import { API_RATE_LIMITS } from "@/lib/api/limits";
 import { exportUserData } from "@/lib/api/repository";
 
@@ -21,3 +21,5 @@ export const GET = apiRoute(async (ctx) => {
     },
   });
 });
+
+export const { POST, PUT, PATCH, DELETE } = methodNotAllowed("GET");

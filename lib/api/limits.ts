@@ -8,6 +8,12 @@ export const API_LIMITS = {
   maxTotalUploadBytes: 50 * 1024 * 1024,
   maxActiveAnalyses: Math.max(1, Number(process.env.API_MAX_ACTIVE_ANALYSES ?? 5)),
   maxActiveApiKeys: 10,
+  /**
+   * Cap on a direct multipart upload to POST /analyses, set by the host:
+   * Vercel rejects request bodies over 4.5 MB before they reach the app.
+   * Larger images go through POST /uploads. Null = no host cap.
+   */
+  maxDirectUploadBytes: process.env.VERCEL ? 4.5 * 1024 * 1024 : null,
 } as const;
 
 /**
