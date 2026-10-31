@@ -45,7 +45,7 @@ curl -H "Authorization: Bearer $AURALENS_KEY" -H "Content-Type: application/json
      https://<host>/api/v1/analyses
 ```
 
-Die Server-Prüfung (Typ, max. 10 MB pro Bild, 50 MB gesamt) greift schon bei Schritt 1. Der Server liest die Bilder in Schritt 3 einmal ein und **löscht sie sofort**; nicht verwendete Uploads werden nach `expiresAt` (1 Stunde) gelöscht. `name` ist optional (Standard: Dateiname aus dem Pfad, auf ASCII vereinfacht). Pfade anderer Konten werden abgelehnt.
+Die Server-Prüfung (Typ, max. 10 MB pro Bild, 50 MB gesamt) greift schon bei Schritt 1. Der Server liest die Bilder in Schritt 3 einmal ein und **löscht sie sofort**; nicht verwendete Uploads werden nach `expiresAt` (1 Stunde) gelöscht, spätestens aber nach 25 Stunden (täglicher Cron `/api/cron/keepalive`). `name` ist optional (Standard: Dateiname aus dem Pfad, auf ASCII vereinfacht). Pfade anderer Konten werden abgelehnt.
 
 **Kleine Bilder direkt:** `POST /analyses` nimmt weiterhin `multipart/form-data` mit dem Feld `images` an. Das ist bequem für Tests, aber durch den Hoster begrenzt – `GET /usage` meldet die Grenze als `limits.maxDirectUploadBytes` (Vercel: 4,5 MB für die ganze Anfrage, `null` = keine Grenze).
 
@@ -186,7 +186,7 @@ Jede Antwort enthält `RateLimit-Limit`, `RateLimit-Remaining` und `RateLimit-Re
 
 - Server-Umgebungsvariable `SUPABASE_SERVICE_ROLE_KEY` (Supabase-Secret-Key) ist Pflicht für die API. Er umgeht Row Level Security; die API filtert deshalb jede Abfrage selbst nach Nutzer (`lib/api/repository.ts`).
 - Migration `20261009200000_analysis_uploads.sql` legt den privaten Bucket `analysis-uploads` für die Direkt-Uploads an.
-- Analysen laufen im Webserver-Prozess nach der Antwort (`after()`), höchstens `API_JOB_CONCURRENCY` (Standard 4) gleichzeitig. Bilder liegen nur bis zum Einlesen im Upload-Bucket (danach sofort gelöscht, verwaiste nach 1 Stunde) und während der Analyse im Arbeitsspeicher.
+- Analysen laufen im Webserver-Prozess nach der Antwort (`after()`), höchstens `API_JOB_CONCURRENCY` (Standard 4) gleichzeitig. Bilder liegen nur bis zum Einlesen im Upload-Bucket (danach sofort gelöscht, verwaiste nach 1 Stunde, spätestens nach 25 Stunden) und während der Analyse im Arbeitsspeicher.
 - Bricht eine Analyse ab (Serverneustart, Funktions-Timeout), markiert ein Datenbank-Cronjob (`pg_cron`, alle 5 Minuten) den Job als `failed` (`processing_interrupted`) und erstattet die Credits: laufende Jobs nach 7 Minuten, wartende nach 15 Minuten. Zusätzlich passiert das beim Abruf der Liste.
 - **Kostenbremse:** `API_DAILY_IMAGE_BUDGET` (Standard 200) begrenzt die Bilder pro Tag über alle Konten zusammen; danach antwortet die API mit `503 daily_budget_exhausted`. Zusätzlich gehört ein hartes Monatslimit in die Anthropic Console.
 - **Geschlossene Beta:** Registrierung nur mit Einladungscode (Tabelle `invite_codes`, Migration `20261027120000_invite_codes.sql`). E-Mail-Registrierungen lösen den Code atomisch beim Anlegen des Users ein (Trigger auf `auth.users`, ohne gültigen Code oder Beta-Hinweis scheitert die Registrierung), Google-Registrierungen in `/auth/callback` (Code per 10-Minuten-Cookie; ohne gültigen Code wird das frische Konto wieder gelöscht). Codes erzeugen: `npm run invite-codes` (Standard 30 Stück, `-- 5 --note "…"`, `-- --env <datei>`).

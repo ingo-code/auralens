@@ -86,7 +86,8 @@ export default function DatenschutzPage() {
       <p>
         Wenn du eine Analyse startest, lädt dein Browser die Bilder zunächst verschlüsselt in einen privaten
         Zwischenspeicher bei Supabase (Server in Frankfurt, EU). Unser Server liest sie dort einmal ein und löscht sie
-        sofort; nicht analysierte Uploads werden spätestens nach einer Stunde automatisch gelöscht. Danach werden die
+        sofort; nicht analysierte Uploads werden nach einer Stunde, spätestens aber nach 25 Stunden automatisch
+        gelöscht. Danach werden die
         Bilder auf unserem Server verkleinert und als JPEG neu erzeugt.
         Dabei werden eingebettete Metadaten (z. B. GPS-Position, Kameradaten) entfernt. Anschließend werden die Bilder
         an die KI-Schnittstelle von <strong>Anthropic, PBC (San Francisco, USA)</strong> übermittelt, die den Report

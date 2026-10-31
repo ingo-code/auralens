@@ -108,6 +108,22 @@ export async function purgeStaleUploads(userId: string, now = Date.now()): Promi
   });
 }
 
+/**
+ * Deletes upload batches older than UPLOAD_TTL_MS for every user, so uploads
+ * of users who never come back are removed too. Runs on each new upload batch
+ * and from the daily cron. Returns the number of user folders checked.
+ */
+export async function purgeAllStaleUploads(now = Date.now()): Promise<number> {
+  const { data: folders, error } = await storage().list("", { limit: 1000 });
+  if (error) throw new Error(`[uploads] list(root): ${error.message}`);
+  // Folders have no id; loose objects at the root (never created) are skipped.
+  const userIds = (folders ?? []).filter((entry) => entry.id === null).map((entry) => entry.name);
+  for (const userId of userIds) {
+    await purgeStaleUploads(userId, now);
+  }
+  return userIds.length;
+}
+
 /** Deletes every upload of this user (account deletion). */
 export async function removeAllUploads(userId: string): Promise<void> {
   await removeBatches(userId, () => false);

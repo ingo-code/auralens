@@ -32,7 +32,7 @@ const uploadsMock = vi.hoisted(() => ({
   createUploadSlots: vi.fn(),
   downloadUploads: vi.fn(),
   removeUploads: vi.fn(),
-  purgeStaleUploads: vi.fn(),
+  purgeAllStaleUploads: vi.fn(),
 }));
 const getClaimsMock = vi.hoisted(() => vi.fn());
 const getUserMock = vi.hoisted(() => vi.fn());
@@ -162,7 +162,7 @@ beforeEach(() => {
   repo.findActiveApiKeyByHash.mockResolvedValue(keyRow());
   repo.failStaleJobs.mockResolvedValue(0);
   uploadsMock.removeUploads.mockResolvedValue(undefined);
-  uploadsMock.purgeStaleUploads.mockResolvedValue(undefined);
+  uploadsMock.purgeAllStaleUploads.mockResolvedValue(undefined);
   repo.findJobByIdempotencyKey.mockResolvedValue(null);
   repo.recordAuditEvent.mockResolvedValue(undefined);
   getClaimsMock.mockResolvedValue({ data: null });

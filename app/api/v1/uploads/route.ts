@@ -6,7 +6,7 @@ import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody } from "@/li
 import { runInBackground } from "@/lib/api/background";
 import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
 import type { UploadBatchResource } from "@/lib/api/resources";
-import { createUploadSlots, purgeStaleUploads, UPLOAD_TTL_MS } from "@/lib/api/uploads";
+import { createUploadSlots, purgeAllStaleUploads, UPLOAD_TTL_MS } from "@/lib/api/uploads";
 import { ALLOWED_IMAGE_TYPES } from "@/lib/image-validation";
 import { describeValidationError } from "@/lib/series-api";
 
@@ -56,11 +56,14 @@ export const POST = apiRoute(async (ctx) => {
     principal.userId,
     files.map((file) => file.name)
   );
-  runInBackground(() =>
-    purgeStaleUploads(principal.userId).catch((error) =>
-      console.error(`[api] request_id=${ctx.requestId} Aufräumen alter Uploads fehlgeschlagen:`, error)
-    )
-  );
+  // Also removes abandoned uploads of other users, so they don't wait for the daily cron.
+  runInBackground(async () => {
+    try {
+      await purgeAllStaleUploads();
+    } catch (error) {
+      console.error(`[api] request_id=${ctx.requestId} Aufräumen alter Uploads fehlgeschlagen:`, error);
+    }
+  });
 
   return NextResponse.json<UploadBatchResource>(
     {
