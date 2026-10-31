@@ -128,7 +128,11 @@ export async function revokeApiKey(userId: string, id: string): Promise<boolean>
 // Analysis jobs
 // ---------------------------------------------------------------------------
 
-export type JobCreationFailure = "insufficient_credits" | "too_many_active" | "duplicate_idempotency_key";
+export type JobCreationFailure =
+  | "insufficient_credits"
+  | "too_many_active"
+  | "daily_budget_exhausted"
+  | "duplicate_idempotency_key";
 
 export class JobCreationError extends Error {
   constructor(readonly reason: JobCreationFailure) {
@@ -151,6 +155,8 @@ export async function createAnalysisJob(input: {
   idempotencyKey: string | null;
   requestHash: string;
   maxActive: number;
+  /** Global images-per-day cap across all accounts; null = none. */
+  dailyImageBudget: number | null;
 }): Promise<AnalysisJobRow> {
   const { data, error } = await getAdminClient()
     .rpc("create_analysis_job", {
@@ -163,12 +169,14 @@ export async function createAnalysisJob(input: {
       p_idempotency_key: input.idempotencyKey,
       p_request_hash: input.requestHash,
       p_max_active: input.maxActive,
+      p_daily_image_budget: input.dailyImageBudget,
     })
     .single<AnalysisJobRow>();
 
   if (error) {
     if (error.code === "P0402") throw new JobCreationError("insufficient_credits");
     if (error.code === "P0429") throw new JobCreationError("too_many_active");
+    if (error.code === "P0503") throw new JobCreationError("daily_budget_exhausted");
     if (error.code === "23505") throw new JobCreationError("duplicate_idempotency_key");
     fail("createAnalysisJob", error);
   }
@@ -309,7 +317,7 @@ const LEGACY_IMAGE_BUCKET = "analysis-images";
  */
 export async function exportUserData(userId: string) {
   const db = getAdminClient();
-  const [user, jobs, keys, ledger, legacy] = await Promise.all([
+  const [user, jobs, keys, ledger, legacy, audit] = await Promise.all([
     db.auth.admin.getUserById(userId),
     db.from("analysis_jobs").select("*").eq("user_id", userId).order("created_at"),
     db
@@ -319,9 +327,10 @@ export async function exportUserData(userId: string) {
       .order("created_at"),
     db.from("credit_ledger").select("delta, reason, analysis_id, created_at").eq("user_id", userId).order("id"),
     db.from("analyses").select("id, report, image_path, created_at").eq("user_id", userId).order("created_at"),
+    db.from("audit_log").select("event, details, api_key_id, request_id, created_at").eq("user_id", userId).order("id"),
   ]);
   if (user.error) throw new Error(`[api-repository] exportUserData(user): ${user.error.message}`);
-  for (const [name, result] of Object.entries({ jobs, keys, ledger, legacy })) {
+  for (const [name, result] of Object.entries({ jobs, keys, ledger, legacy, audit })) {
     if (result.error) fail(`exportUserData(${name})`, result.error);
   }
 
@@ -339,6 +348,7 @@ export async function exportUserData(userId: string) {
     apiKeys: keys.data ?? [],
     creditTransactions: ledger.data ?? [],
     archivedAnalyses: legacy.data ?? [],
+    auditLog: audit.data ?? [],
   };
 }
 
@@ -363,6 +373,60 @@ export async function deleteUserAccount(userId: string): Promise<void> {
 
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) throw new Error(`[api-repository] deleteUserAccount(user): ${error.message}`);
+}
+
+// ---------------------------------------------------------------------------
+// Invite codes (closed beta)
+// ---------------------------------------------------------------------------
+
+/** Exists and unused. Only a hint for the sign-up form - the claim at sign-up decides. */
+export async function isInviteCodeAvailable(code: string): Promise<boolean> {
+  const { data, error } = await getAdminClient().rpc("invite_code_available", { p_code: code });
+  if (error) fail("isInviteCodeAvailable", error);
+  return data === true;
+}
+
+/** Claims the code for an OAuth sign-up and grants the beta credits. False if unknown or used. */
+export async function redeemInviteCode(userId: string, code: string): Promise<boolean> {
+  const { data, error } = await getAdminClient().rpc("redeem_invite_code", { p_user: userId, p_code: code });
+  if (error) fail("redeemInviteCode", error);
+  return data === true;
+}
+
+/** Claimed invite code, or an account from before the invite system. */
+export async function hasBetaAccess(userId: string): Promise<boolean> {
+  const { data, error } = await getAdminClient().rpc("has_beta_access", { p_user: userId });
+  if (error) fail("hasBetaAccess", error);
+  return data === true;
+}
+
+// ---------------------------------------------------------------------------
+// Audit log
+// ---------------------------------------------------------------------------
+
+export type AuditEvent = "api_key.created" | "api_key.revoked" | "account.exported";
+
+/**
+ * Records a security-relevant account event. Best effort: the action itself
+ * already happened, so a failed log write is reported but never thrown.
+ */
+export async function recordAuditEvent(input: {
+  userId: string;
+  event: AuditEvent;
+  details?: Record<string, unknown>;
+  apiKeyId?: string | null;
+  requestId: string;
+}): Promise<void> {
+  const { error } = await getAdminClient()
+    .from("audit_log")
+    .insert({
+      user_id: input.userId,
+      event: input.event,
+      details: input.details ?? {},
+      api_key_id: input.apiKeyId ?? null,
+      request_id: input.requestId,
+    });
+  if (error) console.error(`[audit] ${input.event} request_id=${input.requestId} nicht speicherbar:`, error.message);
 }
 
 // ---------------------------------------------------------------------------

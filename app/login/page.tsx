@@ -4,57 +4,149 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { TURNSTILE_SITE_KEY, TurnstileWidget } from "@/components/auth/TurnstileWidget";
+import { ApiProblem, validateInviteCode } from "@/lib/api-client";
+import { isDisposableEmail } from "@/lib/disposable-email";
 import { useI18n } from "@/lib/i18n/client";
+import { INVITE_COOKIE, INVITE_COOKIE_MAX_AGE_SECONDS, looksLikeInviteCode, normalizeInviteCode } from "@/lib/invite-codes";
 import { createClient } from "@/lib/supabase/client";
-import { BETA_TERMS_VERSION } from "@/lib/legal";
+import { BETA_NOTICE_VERSION, BETA_TERMS_VERSION } from "@/lib/legal";
 
 type Mode = "signin" | "signup";
 
+type AuthErrorLike = { message: string; code?: string };
+
+/** Where the confirmation link in the sign-up e-mail leads (see app/auth/callback). */
+function confirmationRedirect(): string {
+  return `${window.location.origin}/auth/callback?flow=signup`;
+}
+
 export default function LoginPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [acceptedNotice, setAcceptedNotice] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // Unconfirmed sign-in attempt: offer to send the confirmation e-mail again.
+  const [canResend, setCanResend] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  // Turnstile tokens are single-use; bumping the key renders a fresh widget.
+  const [captchaKey, setCaptchaKey] = useState(0);
 
-  // /auth/callback sends failed Google sign-ins back here with ?error=oauth.
+  // /auth/callback sends failed Google sign-ins back here with ?error=oauth,
+  // and confirmed sign-ups it could not sign in directly with ?confirmed=1.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("error") === "oauth") {
-      setError(t.login.oauthFailed); // eslint-disable-line react-hooks/set-state-in-effect
-    }
+    const params = new URLSearchParams(window.location.search);
+    /* eslint-disable react-hooks/set-state-in-effect */
+    if (params.get("error") === "oauth") setError(t.login.oauthFailed);
+    else if (params.get("error") === "invite_required") setError(t.login.inviteRequired);
+    else if (params.get("confirmed") === "1") setInfo(t.login.emailConfirmed);
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [t]);
+
+  const resetCaptcha = () => {
+    if (!TURNSTILE_SITE_KEY) return;
+    setCaptchaToken(null);
+    setCaptchaKey((key) => key + 1);
+  };
+
+  const describeAuthError = (authError: AuthErrorLike): string => {
+    if (authError.code === "email_not_confirmed") {
+      setCanResend(true);
+      return t.login.emailNotConfirmed;
+    }
+    if (authError.code === "captcha_failed") return t.login.captchaFailed;
+    // The database refuses the sign-up (invite code taken in the meantime,
+    // disposable domain); Supabase only reports a generic database error.
+    if (mode === "signup" && /database error saving new user/i.test(authError.message)) return t.login.signupRejected;
+    return authError.message;
+  };
+
+  /** Asks the server whether the code is still available; shows the 400 reason otherwise. */
+  const checkInviteCode = async (): Promise<boolean> => {
+    if (!looksLikeInviteCode(inviteCode)) {
+      setError(t.errors.inviteCodeInvalid);
+      return false;
+    }
+    try {
+      await validateInviteCode(normalizeInviteCode(inviteCode), t);
+      return true;
+    } catch (problem) {
+      setError(problem instanceof ApiProblem ? problem.message : t.errors.inviteCodeInvalid);
+      return false;
+    }
+  };
+
+  /** Returns false (and shows why) when the form must not be sent yet. */
+  const precheck = async (): Promise<boolean> => {
+    if (mode === "signup" && isDisposableEmail(email)) {
+      setError(t.login.disposableEmail);
+      return false;
+    }
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError(t.login.captchaRequired);
+      return false;
+    }
+    return mode === "signin" || (await checkInviteCode());
+  };
+
+  /** Consent proof stored with the account (version + time). */
+  const consentMetadata = () => {
+    const now = new Date().toISOString();
+    return {
+      beta_terms_version: BETA_TERMS_VERSION,
+      beta_terms_accepted_at: now,
+      beta_notice_version: BETA_NOTICE_VERSION,
+      beta_notice_accepted_at: now,
+    };
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     setInfo(null);
+    setCanResend(false);
     setLoading(true);
+    if (!(await precheck())) {
+      setLoading(false);
+      return;
+    }
 
     const supabase = createClient();
+    const captcha = captchaToken ? { captchaToken } : {};
 
-    const { error: authError } =
+    const { data, error: authError } =
       mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
+        ? await supabase.auth.signInWithPassword({ email, password, options: captcha })
         : await supabase.auth.signUp({
             email,
             password,
-            // Proof of consent to the beta terms (version + time), stored with the account.
-            options: { data: { beta_terms_version: BETA_TERMS_VERSION, beta_terms_accepted_at: new Date().toISOString() } },
+            options: {
+              // The database claims the invite code atomically while creating
+              // the user and refuses the sign-up without it or the consent.
+              data: { ...consentMetadata(), invite_code: normalizeInviteCode(inviteCode) },
+              emailRedirectTo: confirmationRedirect(),
+              ...captcha,
+            },
           });
 
     setLoading(false);
+    resetCaptcha();
 
     if (authError) {
-      setError(authError.message);
+      setError(describeAuthError(authError));
       return;
     }
 
     if (mode === "signup") {
-      setInfo(t.login.accountCreated);
+      // Without a session the account waits for its e-mail confirmation.
+      setInfo(data.session ? t.login.accountCreated : t.login.confirmEmailSent(email));
       setMode("signin");
       return;
     }
@@ -63,10 +155,46 @@ export default function LoginPage() {
     router.refresh();
   };
 
+  const handleResend = async () => {
+    setError(null);
+    setInfo(null);
+    if (TURNSTILE_SITE_KEY && !captchaToken) {
+      setError(t.login.captchaRequired);
+      return;
+    }
+    setLoading(true);
+    const { error: authError } = await createClient().auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: confirmationRedirect(), ...(captchaToken ? { captchaToken } : {}) },
+    });
+    setLoading(false);
+    resetCaptcha();
+    if (authError) {
+      setError(describeAuthError(authError));
+      return;
+    }
+    setCanResend(false);
+    setInfo(t.login.confirmationResent);
+  };
+
   const handleGoogle = async () => {
     setError(null);
     setInfo(null);
     setLoading(true);
+    // A Google sign-up carries no metadata: the code and the consent travel
+    // to /auth/callback in a short-lived cookie, which claims the code there.
+    if (mode === "signup") {
+      if (!(await checkInviteCode())) {
+        setLoading(false);
+        return;
+      }
+      const value = encodeURIComponent(
+        JSON.stringify({ code: normalizeInviteCode(inviteCode), consent: consentMetadata() })
+      );
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `${INVITE_COOKIE}=${value}; Path=/auth/callback; Max-Age=${INVITE_COOKIE_MAX_AGE_SECONDS}; SameSite=Lax${secure}`;
+    }
     const { error: authError } = await createClient().auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
@@ -127,6 +255,39 @@ export default function LoginPage() {
           </div>
 
           {mode === "signup" && (
+            <div>
+              <label htmlFor="invite-code" className="mb-1 block text-sm text-stone-600">
+                {t.login.inviteCode}
+              </label>
+              <input
+                id="invite-code"
+                type="text"
+                required
+                autoComplete="off"
+                spellCheck={false}
+                placeholder={t.login.inviteCodePlaceholder}
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
+                className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 font-mono text-sm uppercase text-stone-900 outline-none transition placeholder:normal-case placeholder:text-stone-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+              />
+              <p className="mt-1 text-xs text-stone-500">{t.legal.closedBeta}</p>
+            </div>
+          )}
+
+          {mode === "signup" && (
+            <label className="flex items-start gap-2 text-xs leading-relaxed text-stone-600">
+              <input
+                type="checkbox"
+                required
+                checked={acceptedNotice}
+                onChange={(e) => setAcceptedNotice(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 accent-violet-600"
+              />
+              <span>{t.login.betaNotice}</span>
+            </label>
+          )}
+
+          {mode === "signup" && (
             <label className="flex items-start gap-2 text-xs leading-relaxed text-stone-600">
               <input
                 type="checkbox"
@@ -149,8 +310,20 @@ export default function LoginPage() {
             </label>
           )}
 
+          <TurnstileWidget key={captchaKey} locale={locale} onToken={setCaptchaToken} />
+
           {error && <p className="text-sm text-red-600">{error}</p>}
           {info && <p className="text-sm text-emerald-600">{info}</p>}
+          {canResend && (
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={loading}
+              className="text-sm text-violet-700 underline disabled:opacity-50"
+            >
+              {t.login.resendConfirmation}
+            </button>
+          )}
 
           <button
             type="submit"
@@ -170,7 +343,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            disabled={loading || (mode === "signup" && !acceptedTerms)}
+            disabled={loading || (mode === "signup" && (!acceptedTerms || !acceptedNotice || !inviteCode.trim()))}
             className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
@@ -199,6 +372,7 @@ export default function LoginPage() {
             setMode(mode === "signin" ? "signup" : "signin");
             setError(null);
             setInfo(null);
+            setCanResend(false);
           }}
           className="w-full text-center text-sm text-stone-500 transition-colors hover:text-stone-900"
         >

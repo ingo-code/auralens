@@ -5,7 +5,7 @@ import { authenticate, type Principal } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
 import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody, type ApiContext } from "@/lib/api/handler";
 import { enqueueAnalysis } from "@/lib/api/jobs";
-import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
+import { API_LIMITS, API_RATE_LIMITS, secondsUntilBerlinMidnight } from "@/lib/api/limits";
 import { decodeCursor, encodeCursor } from "@/lib/api/pagination";
 import {
   createAnalysisJob,
@@ -94,6 +94,7 @@ export const POST = apiRoute(async (ctx) => {
       idempotencyKey,
       requestHash,
       maxActive: API_LIMITS.maxActiveAnalyses,
+      dailyImageBudget: API_LIMITS.dailyImageBudget > 0 ? API_LIMITS.dailyImageBudget : null,
     });
   } catch (error) {
     if (!(error instanceof JobCreationError)) throw error;
@@ -259,6 +260,11 @@ async function handleCreationRefusal(
     }
     case "too_many_active":
       throw new ApiError(429, "too_many_active_analyses", ctx.t.errors.tooManyActiveAnalyses(API_LIMITS.maxActiveAnalyses));
+    case "daily_budget_exhausted":
+      console.warn(`[api] request_id=${ctx.requestId} Tagesbudget von ${API_LIMITS.dailyImageBudget} Bildern erreicht`);
+      throw new ApiError(503, "daily_budget_exhausted", ctx.t.errors.dailyBudgetExhausted, {
+        "Retry-After": String(secondsUntilBerlinMidnight()),
+      });
     case "duplicate_idempotency_key": {
       // Lost a race against a parallel request with the same key.
       const existing = idempotencyKey ? await findJobByIdempotencyKey(principal.userId, idempotencyKey) : null;

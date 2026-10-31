@@ -21,6 +21,13 @@ export type LegalConfig = {
 /** Version of the beta terms; bump when the text changes so acceptance can be re-asked. */
 export const BETA_TERMS_VERSION = "2026-10-09";
 
+/**
+ * Version of the closed-beta notice checkbox at sign-up (free, non-commercial
+ * test; uploads go to Anthropic, USA; no third-party copyrighted images or
+ * people without consent). Bump when the wording changes.
+ */
+export const BETA_NOTICE_VERSION = "2026-10-26";
+
 const clean = (value: string | undefined) => (value && value.trim() ? value.trim() : null);
 
 export function getLegalConfig(): LegalConfig {

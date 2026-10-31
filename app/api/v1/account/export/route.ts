@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/api/auth";
 import { apiRoute, enforceRateLimit, methodNotAllowed } from "@/lib/api/handler";
 import { API_RATE_LIMITS } from "@/lib/api/limits";
-import { exportUserData } from "@/lib/api/repository";
+import { exportUserData, recordAuditEvent } from "@/lib/api/repository";
 
 export const runtime = "nodejs";
 
@@ -12,6 +12,7 @@ export const GET = apiRoute(async (ctx) => {
   await enforceRateLimit(ctx, `v1:write:${principal.userId}`, API_RATE_LIMITS.write);
 
   const data = await exportUserData(principal.userId);
+  await recordAuditEvent({ userId: principal.userId, event: "account.exported", requestId: ctx.requestId });
   const date = data.exportedAt.slice(0, 10);
   return new NextResponse(JSON.stringify(data, null, 2), {
     headers: {

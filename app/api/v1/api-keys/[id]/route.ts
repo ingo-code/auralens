@@ -3,7 +3,7 @@ import { authenticate } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
 import { apiRoute, enforceRateLimit, isUuid, methodNotAllowed } from "@/lib/api/handler";
 import { API_RATE_LIMITS } from "@/lib/api/limits";
-import { revokeApiKey } from "@/lib/api/repository";
+import { recordAuditEvent, revokeApiKey } from "@/lib/api/repository";
 
 export const runtime = "nodejs";
 
@@ -15,6 +15,7 @@ export const DELETE = apiRoute<{ id: string }>(async (ctx, { id }) => {
   if (!isUuid(id) || !(await revokeApiKey(principal.userId, id))) {
     throw new ApiError(404, "not_found", ctx.t.errors.apiKeyNotFound);
   }
+  await recordAuditEvent({ userId: principal.userId, event: "api_key.revoked", apiKeyId: id, requestId: ctx.requestId });
   return new NextResponse(null, { status: 204 });
 });
 

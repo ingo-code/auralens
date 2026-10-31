@@ -14,6 +14,8 @@
 | Cookies (§ 25 TDDDG) | Nur zwei technisch notwendige Cookies (Anmeldung, Sprache) → kein Banner nötig. Keine Tracker, keine Analytics, Schriften lokal ausgeliefert |
 | Auskunft & Datenübertragbarkeit (Art. 15, 20) | *Meine Analysen → Konto & Daten → Meine Daten herunterladen* (JSON mit allen Daten, ohne Secrets) |
 | Löschung (Art. 17) | *Konto & Daten → Konto endgültig löschen* (Bestätigung per E-Mail-Eingabe): löscht Konto, Analysen, Reports, gespeicherte Bilder, API-Keys, Credits |
+| Geschlossener Beta-Test | Registrierung nur mit Einladungscode; Pflicht-Checkbox „kostenlose, nicht-kommerzielle geschlossene Beta-Testphase … Übermittlung an Anthropic (USA) … keine urheberrechtlich geschützten Bilder Dritter oder Personen ohne Einwilligung“, Version und Zeitpunkt im Konto (`beta_notice_version`, `beta_notice_accepted_at`); keine Preis- oder Kaufhinweise in der Oberfläche |
+| Missbrauchsschutz | E-Mail-Bestätigung vor Gutschrift der Beta-Credits, Sperre von Wegwerf-Adressen, optional Cloudflare Turnstile (nur mit `NEXT_PUBLIC_TURNSTILE_SITE_KEY`; die Datenschutzerklärung blendet den Abschnitt dann automatisch ein), Audit-Log ohne IP |
 | Datenminimierung (Art. 5, 25) | Bilder werden nicht gespeichert; EXIF/GPS wird vor der Übermittlung entfernt (per Test abgesichert); API-Keys nur als Hash; IP-Adressen nur 10 Min im Arbeitsspeicher |
 | Sicherheit (Art. 32) | Row Level Security, Service-Key nur serverseitig, Passwörter gehasht (Supabase), CSRF-Schutz, Rate-Limits |
 
@@ -33,7 +35,7 @@
    - **Supabase:** DPA im Dashboard unter *Organization → Legal Documents* anfordern/unterzeichnen.
    - **Hosting-Anbieter** (z. B. Railway): dessen DPA akzeptieren.
 3. **Serverstandorte:** Supabase-Projekt in der EU (Frankfurt); beim Hosting eine EU-Region wählen. Log-Aufbewahrung beim Hosting auf **höchstens 30 Tage** prüfen (so steht es in der Datenschutzerklärung).
-4. **Testerkonten von Hand angelegt?** Dann haben diese Tester nicht selbst per Checkbox zugestimmt. Schicke ihnen mit den Zugangsdaten die Links zu `/beta-bedingungen` und `/datenschutz` und lass dir die Kenntnisnahme per E-Mail bestätigen.
+4. **Tester einladen:** Konten werden nicht mehr von Hand angelegt (die Datenbank lehnt E-Mail-Konten ohne Einladungscode ab). Codes mit `npm run invite-codes` erzeugen und einzeln weitergeben; mit `--note` lässt sich festhalten, wer welchen Code bekommen hat.
 5. **Verzeichnis der Verarbeitungstätigkeiten (Art. 30)** – kurz schriftlich festhalten (eine Seite genügt):
 
    | Tätigkeit | Daten | Zweck / Rechtsgrundlage | Empfänger | Löschung |

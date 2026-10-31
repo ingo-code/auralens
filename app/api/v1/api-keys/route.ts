@@ -5,7 +5,7 @@ import { authenticate } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
 import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody } from "@/lib/api/handler";
 import { API_LIMITS, API_RATE_LIMITS } from "@/lib/api/limits";
-import { insertApiKey, listApiKeys } from "@/lib/api/repository";
+import { insertApiKey, listApiKeys, recordAuditEvent } from "@/lib/api/repository";
 import {
   toApiKeyResource,
   type ApiKeyResource,
@@ -60,6 +60,14 @@ export const POST = apiRoute(async (ctx) => {
     hash: generated.hash,
     // Stored in canonical order so equal permission sets look equal.
     scopes: API_SCOPES.filter((scope) => parsed.data.scopes.includes(scope)),
+  });
+
+  await recordAuditEvent({
+    userId: principal.userId,
+    event: "api_key.created",
+    details: { name: row.name, prefix: row.prefix, scopes: row.scopes },
+    apiKeyId: row.id,
+    requestId: ctx.requestId,
   });
 
   return NextResponse.json<CreatedApiKeyResource>(

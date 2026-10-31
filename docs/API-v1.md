@@ -10,6 +10,7 @@ Basis-URL: `https://<host>/api/v1` (lokal `http://localhost:3001/api/v1`). Alle 
 | `GET /analyses/{id}` | Status + Report, bei Serien sortiert/gruppiert | `analyses:read` | – |
 | `DELETE /analyses/{id}` | Analyse löschen | `analyses:write` | – |
 | `GET /usage` | Credit-Guthaben und Limits | `analyses:read` | – |
+| `POST /invite-codes/validate` | Beta-Einladungscode vor der Registrierung prüfen (`{"code": "…"}` → `200` oder `400 invalid_invite_code`), ohne Anmeldung, 10 Prüfungen / 10 min pro IP | – | – |
 | `GET/POST /api-keys`, `DELETE /api-keys/{id}` | Keys verwalten | nur Browser-Sitzung | – |
 
 ## Authentifizierung
@@ -115,7 +116,7 @@ Credits werden beim Start reserviert. Scheitert die Analyse, werden sie **automa
 | `invalid_ai_response` | Ungültige KI-Antwort – erneut versuchen |
 | `image_not_processable` | Bild vom KI-Dienst nicht verarbeitbar |
 | `upstream_rate_limited` / `upstream_unavailable` | KI-Dienst überlastet/nicht erreichbar – später erneut |
-| `processing_interrupted` | Serverneustart während der Analyse |
+| `processing_interrupted` | Serverneustart oder Zeitüberschreitung während der Analyse (Credits erstattet) |
 | `internal_error` | Sonstiger Serverfehler |
 
 ### `GET /analyses`
@@ -171,6 +172,7 @@ Programme sollten auf `code` reagieren (stabil), Menschen lesen `detail` (lokali
 | 429 | `rate_limited` | Request-Limit erreicht (siehe `Retry-After`) |
 | 429 | `too_many_active_analyses` | Mehr als 5 Analysen gleichzeitig in Arbeit |
 | 500 | `internal_error` | Serverfehler |
+| 503 | `daily_budget_exhausted` | Tageskapazität aller Konten erschöpft; keine Credits abgebucht. `Retry-After` nennt die Sekunden bis Mitternacht (Berliner Zeit) |
 
 ## Aufrufe aus dem Browser (CORS)
 
@@ -185,5 +187,9 @@ Jede Antwort enthält `RateLimit-Limit`, `RateLimit-Remaining` und `RateLimit-Re
 - Server-Umgebungsvariable `SUPABASE_SERVICE_ROLE_KEY` (Supabase-Secret-Key) ist Pflicht für die API. Er umgeht Row Level Security; die API filtert deshalb jede Abfrage selbst nach Nutzer (`lib/api/repository.ts`).
 - Migration `20261009200000_analysis_uploads.sql` legt den privaten Bucket `analysis-uploads` für die Direkt-Uploads an.
 - Analysen laufen im Webserver-Prozess nach der Antwort (`after()`), höchstens `API_JOB_CONCURRENCY` (Standard 4) gleichzeitig. Bilder liegen nur bis zum Einlesen im Upload-Bucket (danach sofort gelöscht, verwaiste nach 1 Stunde) und während der Analyse im Arbeitsspeicher.
-- Wird der Server während einer Analyse neu gestartet, markiert AuraLens den Job beim nächsten Abruf als `failed` (`processing_interrupted`) und erstattet die Credits.
+- Bricht eine Analyse ab (Serverneustart, Funktions-Timeout), markiert ein Datenbank-Cronjob (`pg_cron`, alle 5 Minuten) den Job als `failed` (`processing_interrupted`) und erstattet die Credits: laufende Jobs nach 7 Minuten, wartende nach 15 Minuten. Zusätzlich passiert das beim Abruf der Liste.
+- **Kostenbremse:** `API_DAILY_IMAGE_BUDGET` (Standard 200) begrenzt die Bilder pro Tag über alle Konten zusammen; danach antwortet die API mit `503 daily_budget_exhausted`. Zusätzlich gehört ein hartes Monatslimit in die Anthropic Console.
+- **Geschlossene Beta:** Registrierung nur mit Einladungscode (Tabelle `invite_codes`, Migration `20261027120000_invite_codes.sql`). E-Mail-Registrierungen lösen den Code atomisch beim Anlegen des Users ein (Trigger auf `auth.users`, ohne gültigen Code oder Beta-Hinweis scheitert die Registrierung), Google-Registrierungen in `/auth/callback` (Code per 10-Minuten-Cookie; ohne gültigen Code wird das frische Konto wieder gelöscht). Codes erzeugen: `npm run invite-codes` (Standard 30 Stück, `-- 5 --note "…"`, `-- --env <datei>`).
+- **Missbrauchsschutz:** Beta-Credits gibt es erst nach bestätigter E-Mail-Adresse (Google-Konten sind sofort bestätigt), Registrierungen mit Wegwerf-Adressen lehnt die Datenbank ab (`blocked_email_domains`, Liste identisch mit `lib/disposable-email.ts`). Optional schützt Cloudflare Turnstile Registrierung und Anmeldung (`NEXT_PUBLIC_TURNSTILE_SITE_KEY` + Captcha in Supabase).
+- **Audit-Log:** API-Key erstellt/widerrufen und Datenexport landen in `audit_log` (ohne IP, mit Request-ID). Anmeldungen und Passwortänderungen protokolliert Supabase Auth selbst.
 - Weitere Stellschrauben: `API_MAX_ACTIVE_ANALYSES`, `API_CREATE_RATE_LIMIT`, `API_READ_RATE_LIMIT`.

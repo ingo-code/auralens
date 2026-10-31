@@ -15,6 +15,8 @@ export type ApiErrorCode =
   | "idempotency_conflict"
   | "api_key_limit_reached"
   | "too_many_active_analyses"
+  | "daily_budget_exhausted"
+  | "invalid_invite_code"
   | "rate_limited"
   | "gone"
   | "method_not_allowed"
@@ -32,6 +34,8 @@ const TITLES: Record<ApiErrorCode, string> = {
   idempotency_conflict: "Idempotency key reused with different content",
   api_key_limit_reached: "API key limit reached",
   too_many_active_analyses: "Too many active analyses",
+  daily_budget_exhausted: "Daily analysis capacity exhausted",
+  invalid_invite_code: "Invalid or used invite code",
   rate_limited: "Rate limit exceeded",
   gone: "Endpoint retired",
   method_not_allowed: "Method not allowed",

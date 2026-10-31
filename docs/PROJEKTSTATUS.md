@@ -2,6 +2,29 @@
 
 > **Übergabedokument für eine externe Gesamtanalyse (z. B. Gemini).** Es beschreibt, was existiert, was nachweislich funktioniert (mit Messwerten), welche Architekturentscheidungen getroffen wurden und was bis zum marktreifen Produkt fehlt. Bitte auf dieser Basis prüfen, kritisieren und einen priorisierten Fahrplan erstellen. Die Fragen stehen in Abschnitt 8. Ergänzende Dokumente: `docs/market-strategy-2026.md` (Markt, Preise, Marketing), `docs/API-v1.md` (öffentliche API), `docs/API.md` (Report-Aufbau).
 
+## 0b. Neu am 26.10.2026 (abends): Geschlossene Beta mit Einladungscodes
+
+- Registrierung nur mit **Einladungscode** (Tabelle `invite_codes`, Migration `20261027120000_invite_codes.sql`). E-Mail-Registrierungen: der Trigger auf `auth.users` löst den Code in derselben Transaktion ein; ungültig, benutzt oder ohne Beta-Hinweis → Registrierung scheitert (auch bei direkten Aufrufen an Supabase Auth). Das Formular prüft vorher über `POST /api/v1/invite-codes/validate` (`400 invalid_invite_code`, 10 Prüfungen / 10 min pro IP). Google-Registrierungen lösen den Code in `/auth/callback` ein (10-Minuten-Cookie); ohne gültigen Code wird das frische Konto wieder gelöscht.
+- Beta-Credits nur mit eingelöstem Code (zusätzlich zu bestätigter E-Mail); Bestandskonten behalten Zugang und Guthaben.
+- **Pflicht-Checkbox Beta-Hinweis** (kostenlos, nicht-kommerziell, Übermittlung an Anthropic, keine fremden geschützten Bilder/Personen ohne Einwilligung), Version + Zeitpunkt im Konto.
+- Keine Monetarisierungs-Texte mehr: Hinweis „Geschlossene Beta – Aktuell kostenlos für Tester mit Einladungscode.“ (Footer, Registrierung, Dialog bei leerem Guthaben). Preisseiten oder Kauf-Buttons gab es nicht.
+- Codes erzeugen: `npm run invite-codes` (Standard 30, kryptografisch zufällig, Format `AURALENS-BETA-2026-XXXXXXXX`).
+- Verifiziert: 214 Tests grün, `tsc`, ESLint, `next build` sauber; Migrationen in PGlite mit Supabase-Stubs geprüft (27 Prüfungen).
+
+## 0a. Neu am 26.10.2026: Missbrauchs- und Kostenschutz (nach Gemini-Sicherheitsreview)
+
+Migration `20261026120000_abuse_protection.sql` plus Anpassungen an Login, API und Datenschutzerklärung:
+
+| Befund (Gemini) | Umsetzung |
+|---|---|
+| Gratis-Credits per Massen-Registrierung abgreifen (kritisch) | Beta-Credits erst nach **bestätigter E-Mail** (Trigger auf `email_confirmed_at`, höchstens einmal pro Konto); **Wegwerf-Domains** werden von der Datenbank abgelehnt und vorab im Login erklärt; optional **Cloudflare Turnstile** (aktiv mit `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + Captcha in Supabase); „Bestätigungs-E-Mail erneut senden“ |
+| Fehlende Kostenbremse (kritisch) | **Globales Tagesbudget** über alle Konten (`API_DAILY_IMAGE_BUDGET`, Standard 200 Bilder/Tag) atomar in `create_analysis_job`, danach `503 daily_budget_exhausted` mit `Retry-After` bis Mitternacht; Zähler `daily_usage` überlebt Konto- und Analyse-Löschung |
+| Vercel-Timeout / hängende Jobs (hoch) | **`pg_cron`-Sweep alle 5 min für alle Nutzer**, engere Schwellen (laufend > 7 min, wartend > 15 min, passend zu `maxDuration = 300`); Erstattung weiterhin höchstens einmal. Eine echte Queue (Inngest/Trigger.dev) ist bewusst noch nicht eingebaut |
+| Upload-Pfad-Hijacking (mittel) | War bereits abgedeckt: `isOwnUploadPath` prüft `user_id`-Präfix und Pfadschema, signierte Einmal-URLs ohne Überschreiben; getestet |
+| Audit-Log fehlt | Tabelle `audit_log` (API-Key erstellt/widerrufen, Datenexport; ohne IP, mit Request-ID), im Datenexport enthalten. Logins/Passwortänderungen protokolliert Supabase Auth |
+
+Verifiziert: 192 Vitest-Tests grün, `tsc` und ESLint sauber; alle Migrationen in PGlite mit Supabase-Stubs durchgespielt (29 Prüfungen: Gutschrift nur nach Bestätigung, keine Doppelgutschrift, Wegwerf-Sperre, Budget inkl. Rollback, Sweep, Rechte). **Noch nicht** auf dem gehosteten Supabase angewendet.
+
 ## 0. Neu seit der letzten Analyse (08.10. → 09.10.2026)
 
 **Ausgangslage:** Die Web-Oberfläche nutzte noch die alten synchronen Routen. Serien aus der UI wurden nicht gespeichert, verbrauchten keine Credits, und die Seite wartete ca. 1 Minute ohne Rückmeldung.

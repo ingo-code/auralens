@@ -109,6 +109,15 @@ function fetchAnalysis(id: string, t: Messages, signal?: AbortSignal): Promise<A
   return request<AnalysisResource>(`/api/v1/analyses/${encodeURIComponent(id)}`, t, { signal });
 }
 
+/** Checks an invite code before sign-up; rejects with ApiProblem `invalid_invite_code` (400). */
+export async function validateInviteCode(code: string, t: Messages): Promise<void> {
+  await request<{ valid: true }>("/api/v1/invite-codes/validate", t, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+}
+
 export function fetchUsage(t: Messages): Promise<UsageResource> {
   return request<UsageResource>("/api/v1/usage", t);
 }

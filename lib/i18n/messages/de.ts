@@ -68,6 +68,25 @@ export const de = {
     password: "Passwort",
     wait: "Bitte warten…",
     accountCreated: "Konto erstellt. Du kannst dich jetzt anmelden.",
+    confirmEmailSent: (email: string) =>
+      `Fast geschafft: Wir haben dir eine E-Mail an ${email} geschickt. Bitte klicke auf den Link darin, um dein Konto zu bestätigen. Erst danach werden die 20 Beta-Credits gutgeschrieben.`,
+    emailConfirmed: "E-Mail bestätigt. Bitte melde dich jetzt an.",
+    emailNotConfirmed: "Deine E-Mail-Adresse ist noch nicht bestätigt. Bitte klicke auf den Link in unserer E-Mail.",
+    resendConfirmation: "Bestätigungs-E-Mail erneut senden",
+    confirmationResent: "Wir haben dir eine neue Bestätigungs-E-Mail geschickt.",
+    disposableEmail: "Wegwerf-E-Mail-Adressen sind nicht erlaubt. Bitte nutze eine dauerhafte Adresse.",
+    captchaRequired: "Bitte bestätige kurz, dass du kein Bot bist.",
+    captchaFailed: "Die Sicherheitsprüfung ist fehlgeschlagen. Bitte lade die Seite neu und versuche es erneut.",
+    inviteCode: "Beta-Einladungscode",
+    inviteCodePlaceholder: "AURALENS-BETA-2026-…",
+    inviteRequired:
+      "Die Registrierung ist nur mit einem gültigen Beta-Einladungscode möglich. Es wurde kein Konto angelegt.",
+    signupRejected:
+      "Registrierung abgelehnt: Der Einladungscode ist ungültig oder wurde gerade verwendet, oder die E-Mail-Adresse ist nicht erlaubt.",
+    betaNotice:
+      "Ich nehme an einer kostenlosen, nicht-kommerziellen geschlossenen Beta-Testphase teil. Mir ist bewusst, dass zu " +
+      "Testzwecken hochgeladene Bilder an Anthropic (USA) übermittelt werden und keine urheberrechtlich geschützten " +
+      "Bilder von Dritten oder Personen ohne Einwilligung hochgeladen werden dürfen.",
     toSignUp: "Noch kein Konto? Registrieren",
     toSignIn: "Schon registriert? Anmelden",
     back: "← Zurück zur Startseite",
@@ -316,7 +335,11 @@ export const de = {
       `Nicht genug Credits: benötigt ${required}, verfügbar ${balance}.`,
     tooManyActiveAnalyses: (max: number) =>
       `Zu viele laufende Analysen (maximal ${max} gleichzeitig). Bitte warte, bis eine abgeschlossen ist.`,
-    processingInterrupted: "Die Analyse wurde durch einen Serverneustart unterbrochen. Die Credits wurden erstattet.",
+    dailyBudgetExhausted:
+      "Die Analyse-Kapazität für heute ist ausgeschöpft. Bitte versuche es morgen erneut – es wurden keine Credits abgebucht.",
+    inviteCodeInvalid: "Der Einladungscode ist ungültig oder wurde bereits verwendet.",
+    processingInterrupted:
+      "Die Analyse wurde unterbrochen (Serverneustart oder Zeitüberschreitung). Die Credits wurden erstattet.",
     apiKeyLimit: (max: number) => `Maximal ${max} aktive API-Keys pro Konto. Widerrufe zuerst einen alten Key.`,
     apiKeyNotFound: "API-Key nicht gefunden.",
     accountDeleteConfirm: "Zur Bestätigung bitte die E-Mail-Adresse deines Kontos eingeben.",
@@ -358,8 +381,8 @@ export const de = {
     creditsExhausted: {
       title: "Beta-Guthaben aufgebraucht",
       body:
-        "Für diese Analyse reicht dein Guthaben nicht mehr. Im geschlossenen Beta-Test lassen sich noch keine " +
-        "Credits nachkaufen – sprich uns an, wenn du weitertesten möchtest.",
+        "Für diese Analyse reicht dein Guthaben nicht mehr. Geschlossene Beta – Aktuell kostenlos für Tester mit " +
+        "Einladungscode. Sprich uns an, wenn du weitertesten möchtest.",
       dashboard: "Zu meinen Analysen",
       close: "Schließen",
     },
@@ -376,6 +399,8 @@ export const de = {
     idempotency_conflict: "Diese Analyse wurde bereits mit anderen Bildern gestartet.",
     api_key_limit_reached: "Zu viele aktive API-Keys.",
     too_many_active_analyses: "Es laufen bereits zu viele Analysen. Bitte warte, bis eine abgeschlossen ist.",
+    daily_budget_exhausted: "Die Analyse-Kapazität für heute ist ausgeschöpft. Bitte versuche es morgen erneut.",
+    invalid_invite_code: "Der Einladungscode ist ungültig oder wurde bereits verwendet.",
     rate_limited: "Zu viele Anfragen. Bitte warte einen Moment.",
     gone: "Diese Funktion wurde abgeschaltet.",
     method_not_allowed: "Diese Aktion wird hier nicht unterstützt.",
@@ -385,7 +410,7 @@ export const de = {
     imprint: "Impressum",
     privacy: "Datenschutz",
     terms: "Beta-Bedingungen",
-    closedBeta: "Geschlossener Beta-Test · kostenlos · keine Zahlungen",
+    closedBeta: "Geschlossene Beta – Aktuell kostenlos für Tester mit Einladungscode.",
     germanOnly: "Die rechtlichen Texte sind nur auf Deutsch verfügbar; die deutsche Fassung ist maßgeblich.",
     uploadNotice:
       "Deine Bilder werden zur Analyse an Anthropic (USA) übermittelt und von AuraLens nicht dauerhaft gespeichert; " +

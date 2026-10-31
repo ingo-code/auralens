@@ -54,6 +54,24 @@ export const en: Messages = {
     password: "Password",
     wait: "Please wait…",
     accountCreated: "Account created. You can sign in now.",
+    confirmEmailSent: (email) =>
+      `Almost done: we sent an e-mail to ${email}. Please click the link in it to confirm your account. The 20 beta credits are added after that.`,
+    emailConfirmed: "E-mail confirmed. Please sign in now.",
+    emailNotConfirmed: "Your e-mail address is not confirmed yet. Please click the link in our e-mail.",
+    resendConfirmation: "Resend confirmation e-mail",
+    confirmationResent: "We sent you a new confirmation e-mail.",
+    disposableEmail: "Disposable e-mail addresses are not allowed. Please use a permanent address.",
+    captchaRequired: "Please confirm that you are not a bot.",
+    captchaFailed: "The security check failed. Please reload the page and try again.",
+    inviteCode: "Beta invite code",
+    inviteCodePlaceholder: "AURALENS-BETA-2026-…",
+    inviteRequired: "Signing up requires a valid beta invite code. No account was created.",
+    signupRejected:
+      "Sign-up refused: the invite code is invalid or was just used, or the e-mail address is not allowed.",
+    betaNotice:
+      "I am taking part in a free, non-commercial closed beta test. I am aware that images uploaded for testing " +
+      "purposes are transmitted to Anthropic (USA) and that no copyrighted images of third parties and no images of " +
+      "people without their consent may be uploaded.",
     toSignUp: "No account yet? Sign up",
     toSignIn: "Already registered? Sign in",
     back: "← Back to home",
@@ -297,7 +315,10 @@ export const en: Messages = {
     insufficientCredits: (required, balance) => `Not enough credits: ${required} required, ${balance} available.`,
     tooManyActiveAnalyses: (max) =>
       `Too many running analyses (at most ${max} at a time). Please wait until one has finished.`,
-    processingInterrupted: "The analysis was interrupted by a server restart. The credits were refunded.",
+    dailyBudgetExhausted:
+      "Today's analysis capacity is used up. Please try again tomorrow – no credits were charged.",
+    inviteCodeInvalid: "The invite code is invalid or has already been used.",
+    processingInterrupted: "The analysis was interrupted (server restart or timeout). The credits were refunded.",
     apiKeyLimit: (max) => `At most ${max} active API keys per account. Revoke an old key first.`,
     apiKeyNotFound: "API key not found.",
     accountDeleteConfirm: "To confirm, please enter the e-mail address of your account.",
@@ -338,8 +359,8 @@ export const en: Messages = {
     creditsExhausted: {
       title: "Beta credits used up",
       body:
-        "Your balance is not enough for this analysis. Credits can't be purchased yet during the closed beta – " +
-        "get in touch if you'd like to keep testing.",
+        "Your balance is not enough for this analysis. Closed beta – currently free for testers with an invite code. " +
+        "Get in touch if you'd like to keep testing.",
       dashboard: "Go to my analyses",
       close: "Close",
     },
@@ -355,6 +376,8 @@ export const en: Messages = {
     idempotency_conflict: "This analysis was already started with different images.",
     api_key_limit_reached: "Too many active API keys.",
     too_many_active_analyses: "Too many analyses are already running. Please wait until one has finished.",
+    daily_budget_exhausted: "Today's analysis capacity is used up. Please try again tomorrow.",
+    invalid_invite_code: "The invite code is invalid or has already been used.",
     rate_limited: "Too many requests. Please wait a moment.",
     gone: "This feature has been retired.",
     method_not_allowed: "This action is not supported here.",
@@ -364,7 +387,7 @@ export const en: Messages = {
     imprint: "Imprint",
     privacy: "Privacy",
     terms: "Beta terms",
-    closedBeta: "Closed beta · free of charge · no payments",
+    closedBeta: "Closed beta – currently free for testers with an invite code.",
     germanOnly: "The legal texts are only available in German; the German version is binding.",
     uploadNotice:
       "Your images are sent to Anthropic (USA) for analysis and are not stored permanently by AuraLens; metadata such as " +

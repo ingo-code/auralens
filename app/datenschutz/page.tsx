@@ -11,11 +11,13 @@ export const metadata: Metadata = { title: "Datenschutzerklärung – AuraLens" 
  */
 export default function DatenschutzPage() {
   const legal = getLegalConfig();
+  // The bot check on the login page is only active with a site key.
+  const captcha = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
 
   return (
     <LegalPage title="Datenschutzerklärung">
       <MissingConfigNotice missing={missingLegalFields(legal)} />
-      <p className="text-sm text-stone-500">Stand: 9. Oktober 2026 · gilt für den geschlossenen Beta-Test</p>
+      <p className="text-sm text-stone-500">Stand: 26. Oktober 2026 · gilt für den geschlossenen Beta-Test</p>
 
       <h2>1. Verantwortlicher</h2>
       <p>
@@ -55,6 +57,26 @@ export default function DatenschutzPage() {
         Beta-Bedingungen zugestimmt hast. Die Anmeldung erfolgt über den Dienst Supabase:{" "}
         <Filled value={legal.database} />.
       </p>
+      <p>
+        Die Registrierung ist nur mit einem persönlichen Beta-Einladungscode möglich. Wir speichern, welcher Code von
+        welchem Konto wann eingelöst wurde, sowie Version und Zeitpunkt deiner Bestätigung des Beta-Hinweises
+        (kostenloser, nicht-kommerzieller Test; Übermittlung der Bilder an Anthropic).
+      </p>
+      <p>
+        Bei der Registrierung mit E-Mail-Adresse senden wir dir eine E-Mail mit einem Bestätigungslink; das
+        Beta-Guthaben wird erst nach der Bestätigung gutgeschrieben. Adressen von Wegwerf-E-Mail-Diensten werden
+        abgelehnt. Beides schützt den kostenlosen Beta-Test vor massenhaft angelegten Konten.
+      </p>
+      {captcha && (
+        <p>
+          <strong>Schutz vor Bots:</strong> Auf der Anmeldeseite setzen wir Cloudflare Turnstile ein (Cloudflare, Inc.,
+          San Francisco, USA). Dabei verarbeitet Cloudflare technische Daten deines Browsers und deine IP-Adresse, um
+          automatisierte Anmeldungen zu erkennen; es werden keine Cookies zu Werbezwecken gesetzt. Rechtsgrundlage ist
+          Art. 6 Abs. 1 lit. f DSGVO (Schutz vor Missbrauch); der Zugriff auf dein Endgerät ist dafür unbedingt
+          erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG). Die Übermittlung in die USA erfolgt auf Grundlage des
+          EU-US Data Privacy Framework, unter dem Cloudflare zertifiziert ist.
+        </p>
+      )}
       <p>
         Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Teilnahme am Beta-Test). Speicherdauer: bis du dein Konto löschst,
         spätestens 3 Monate nach Ende des Beta-Tests.
@@ -106,12 +128,18 @@ export default function DatenschutzPage() {
         (Gutschrift, Reservierung, Erstattung) zu deinem Konto gespeichert. Credits haben keinen Geldwert.
         Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO. Speicherdauer: wie beim Konto.
       </p>
+      <p>
+        Sicherheitsrelevante Vorgänge (API-Key erstellt oder widerrufen, Datenexport) protokollieren wir mit Zeitpunkt
+        und Request-Kennung, ohne IP-Adresse, damit sich Missbrauch nachvollziehen lässt. Rechtsgrundlage: Art. 6 Abs.
+        1 lit. f DSGVO. Speicherdauer: wie beim Konto; das Protokoll ist im Datenexport enthalten.
+      </p>
 
       <h2>7. Empfänger und Auftragsverarbeiter</h2>
       <ul>
         <li>Hosting: <Filled value={legal.hosting} /></li>
         <li>Datenbank und Anmeldung: <Filled value={legal.database} /></li>
         <li>KI-Analyse: Anthropic, PBC, USA (Abschnitt 5)</li>
+        {captcha && <li>Schutz vor Bots: Cloudflare, Inc., USA (Abschnitt 4)</li>}
       </ul>
       <p>Mit allen Dienstleistern bestehen Verträge zur Auftragsverarbeitung nach Art. 28 DSGVO.</p>
 
@@ -123,11 +151,16 @@ export default function DatenschutzPage() {
         <li>
           <code>auralens-locale</code> – speichert die gewählte Sprache (Deutsch/Englisch), 1 Jahr.
         </li>
+        <li>
+          <code>auralens-invite</code> – nur bei der Registrierung mit Google: hält Einladungscode und Zustimmung für
+          den Weg über Google fest, höchstens 10 Minuten; wird nach der Rückkehr sofort gelöscht.
+        </li>
       </ul>
       <p>
-        Beide sind für den von dir gewünschten Dienst unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und benötigen
+        Sie sind für den von dir gewünschten Dienst unbedingt erforderlich (§ 25 Abs. 2 Nr. 2 TDDDG) und benötigen
         keine Einwilligung. Weitere Cookies, Local Storage zu Tracking-Zwecken oder Einbindungen von Drittanbietern
-        (z. B. Schriften von Google-Servern) gibt es nicht.
+        (z. B. Schriften von Google-Servern) gibt es nicht
+        {captcha ? " – mit Ausnahme der Bot-Prüfung auf der Anmeldeseite (Abschnitt 4)" : ""}.
       </p>
 
       <h2>9. Deine Rechte</h2>

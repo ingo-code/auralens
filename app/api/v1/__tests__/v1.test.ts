@@ -25,6 +25,8 @@ const repo = vi.hoisted(() => ({
   getCreditBalance: vi.fn(),
   exportUserData: vi.fn(),
   deleteUserAccount: vi.fn(),
+  recordAuditEvent: vi.fn(),
+  isInviteCodeAvailable: vi.fn(),
 }));
 const uploadsMock = vi.hoisted(() => ({
   createUploadSlots: vi.fn(),
@@ -75,6 +77,7 @@ const apiKeys = await import("@/app/api/v1/api-keys/route");
 const apiKey = await import("@/app/api/v1/api-keys/[id]/route");
 const account = await import("@/app/api/v1/account/route");
 const accountExport = await import("@/app/api/v1/account/export/route");
+const inviteCheck = await import("@/app/api/v1/invite-codes/validate/route");
 const { JobCreationError } = await import("@/lib/api/repository");
 const { encodeCursor } = await import("@/lib/api/pagination");
 
@@ -161,6 +164,7 @@ beforeEach(() => {
   uploadsMock.removeUploads.mockResolvedValue(undefined);
   uploadsMock.purgeStaleUploads.mockResolvedValue(undefined);
   repo.findJobByIdempotencyKey.mockResolvedValue(null);
+  repo.recordAuditEvent.mockResolvedValue(undefined);
   getClaimsMock.mockResolvedValue({ data: null });
 });
 
@@ -268,6 +272,30 @@ describe("POST /api/v1/analyses", () => {
 
     expect(res.status).toBe(429);
     expect((await res.json()).code).toBe("too_many_active_analyses");
+  });
+
+  it("übergibt das globale Tagesbudget an die Datenbank", async () => {
+    repo.createAnalysisJob.mockResolvedValue(jobRow());
+
+    await analyses.POST(uploadRequest(["a.png"]), noParams);
+
+    expect(repo.createAnalysisJob.mock.calls[0][0]).toMatchObject({ dailyImageBudget: 200 });
+  });
+
+  it("meldet ein ausgeschöpftes Tagesbudget mit 503 und Retry-After bis Mitternacht", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    repo.createAnalysisJob.mockRejectedValue(new JobCreationError("daily_budget_exhausted"));
+
+    const res = await analyses.POST(uploadRequest(["a.png"]), noParams);
+
+    expect(res.status).toBe(503);
+    const body = await res.json();
+    expect(body.code).toBe("daily_budget_exhausted");
+    expect(body.detail).toMatch(/keine Credits abgebucht/);
+    const retryAfter = Number(res.headers.get("retry-after"));
+    expect(retryAfter).toBeGreaterThan(0);
+    expect(retryAfter).toBeLessThanOrEqual(24 * 3600);
+    expect(backgroundTasks).toHaveLength(0);
   });
 
   describe("Idempotency-Key", () => {
@@ -515,6 +543,10 @@ describe("/api/v1/api-keys", () => {
     expect(stored).toMatchObject({ userId: USER_ID, name: "Lightroom", scopes: ["analyses:read", "analyses:write"] });
     expect(stored.hash).toBe(createHash("sha256").update(body.key).digest("hex"));
     expect(JSON.stringify(stored)).not.toContain(body.key);
+    expect(repo.recordAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, event: "api_key.created", apiKeyId: KEY_ID })
+    );
+    expect(JSON.stringify(repo.recordAuditEvent.mock.calls)).not.toContain(body.key);
   });
 
   it("begrenzt die Zahl aktiver Keys", async () => {
@@ -538,6 +570,11 @@ describe("/api/v1/api-keys", () => {
     expect(ok.status).toBe(204);
     expect(missing.status).toBe(404);
     expect(repo.revokeApiKey).toHaveBeenCalledWith(USER_ID, KEY_ID);
+    // Only the successful revocation is an event worth logging.
+    expect(repo.recordAuditEvent).toHaveBeenCalledTimes(1);
+    expect(repo.recordAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, event: "api_key.revoked", apiKeyId: KEY_ID })
+    );
   });
 });
 
@@ -557,6 +594,9 @@ describe("Datenschutz-Selbstbedienung (/api/v1/account)", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
     expect(await res.json()).toMatchObject({ account: { id: USER_ID } });
     expect(repo.exportUserData).toHaveBeenCalledWith(USER_ID);
+    expect(repo.recordAuditEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: USER_ID, event: "account.exported", requestId: res.headers.get("x-request-id") })
+    );
   });
 
   it("ist mit einem API-Key weder für Export noch Löschung erreichbar", async () => {
@@ -588,6 +628,59 @@ describe("Datenschutz-Selbstbedienung (/api/v1/account)", () => {
     );
     expect(ok.status).toBe(204);
     expect(repo.deleteUserAccount).toHaveBeenCalledWith(USER_ID);
+  });
+});
+
+describe("Einladungscode prüfen (/api/v1/invite-codes/validate)", () => {
+  const check = (code: unknown, ip = "1.2.3.4") =>
+    inviteCheck.POST(
+      request("/invite-codes/validate", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-forwarded-for": ip },
+        body: JSON.stringify({ code }),
+      }),
+      noParams
+    );
+
+  it("bestätigt einen freien Code ohne Anmeldung", async () => {
+    repo.isInviteCodeAvailable.mockResolvedValue(true);
+
+    const res = await check("AURALENS-BETA-2026-7KQ4M9TX");
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ object: "invite_code_check", valid: true });
+    expect(repo.isInviteCodeAvailable).toHaveBeenCalledWith("AURALENS-BETA-2026-7KQ4M9TX");
+  });
+
+  it("antwortet bei unbekanntem oder benutztem Code mit 400 invalid_invite_code", async () => {
+    repo.isInviteCodeAvailable.mockResolvedValue(false);
+
+    const res = await check("AURALENS-BETA-2026-BENUTZT1");
+
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body).toMatchObject({ code: "invalid_invite_code", status: 400 });
+    expect(body.detail).toBe("Der Einladungscode ist ungültig oder wurde bereits verwendet.");
+  });
+
+  it("fragt die Datenbank bei offensichtlich falschen Eingaben gar nicht erst", async () => {
+    for (const code of ["", "kurz", 42, "x".repeat(101)]) {
+      const res = await check(code);
+      expect(res.status).toBe(400);
+      expect((await res.json()).code).toBe("invalid_invite_code");
+    }
+    expect(repo.isInviteCodeAvailable).not.toHaveBeenCalled();
+  });
+
+  it("begrenzt Prüfungen pro IP, damit sich Codes nicht erraten lassen", async () => {
+    repo.isInviteCodeAvailable.mockResolvedValue(false);
+    for (let i = 0; i < 10; i += 1) expect((await check(`AURALENS-BETA-2026-RATEN00${i}`, "5.5.5.5")).status).toBe(400);
+
+    const blocked = await check("AURALENS-BETA-2026-RATEN010", "5.5.5.5");
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
+    // Other IPs are unaffected.
+    expect((await check("AURALENS-BETA-2026-ANDERS01", "6.6.6.6")).status).toBe(400);
   });
 });
 
