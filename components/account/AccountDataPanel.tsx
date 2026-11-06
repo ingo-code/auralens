@@ -68,21 +68,21 @@ export function AccountDataPanel({ email }: { email: string }) {
         </p>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">{labels.exportHeading}</h2>
+      <section className="border border-hairline bg-panel p-6">
+        <h2 className="text-lg">{labels.exportHeading}</h2>
         <p className="mt-1 text-sm text-stone-600">{labels.exportText}</p>
         <button
           type="button"
           onClick={handleExport}
           disabled={exporting}
-          className="mt-4 rounded-xl bg-stone-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-stone-700 disabled:opacity-50"
+          className="mt-4 border border-stone-300 bg-panel-high px-4 py-2 text-sm font-medium text-ink transition-colors hover:bg-stone-300 disabled:opacity-50"
         >
           {exporting ? labels.exporting : labels.exportButton}
         </button>
       </section>
 
-      <section className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold text-red-800">{labels.deleteHeading}</h2>
+      <section className="border border-red-200 bg-white p-6">
+        <h2 className="text-lg text-red-800">{labels.deleteHeading}</h2>
         <p className="mt-1 text-sm text-stone-600">{labels.deleteText}</p>
         <form onSubmit={handleDelete} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
           <label className="flex-1 text-sm">

@@ -43,7 +43,7 @@ export const GET = apiRoute<Params>(async (ctx, { id }) => {
   }
 
   return NextResponse.json<AnalysisResource>(
-    toAnalysisResource(job, ctx.t, { includeReport: true, organization })
+    toAnalysisResource(job, ctx.t, { includeReport: true, includeShare: true, organization })
   );
 });
 

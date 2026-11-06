@@ -68,14 +68,14 @@ export function AnalysisProgress({ analysis, imageCount, onBackground }: Analysi
 
   return (
     <div className="w-full space-y-6">
-      <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm" role="status" aria-live="polite">
+      <div className="border border-hairline bg-panel p-6" role="status" aria-live="polite">
         <div className="flex items-baseline justify-between">
           <p className="text-sm font-semibold uppercase tracking-wider text-violet-700">{labels.running}</p>
           <p className="font-mono text-sm text-stone-600">{elapsed}s</p>
         </div>
 
         <div
-          className="mt-4 h-2 overflow-hidden rounded-full bg-stone-100"
+          className="mt-4 h-1.5 overflow-hidden bg-panel-high"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -83,7 +83,7 @@ export function AnalysisProgress({ analysis, imageCount, onBackground }: Analysi
           aria-label={labels.running}
         >
           <div
-            className="h-2 rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-[width] duration-700 ease-out"
+            className="h-1.5 bg-signal transition-[width] duration-700 ease-out"
             style={{ width: `${percent}%` }}
           />
         </div>
@@ -149,7 +149,7 @@ function Step({ state, label, badge }: { state: StepState; label: string; badge?
       </span>
       <span className={state === "pending" ? "text-stone-500" : "text-stone-800"}>{label}</span>
       {badge && state === "active" && (
-        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] uppercase tracking-wider text-violet-600">
+        <span className="bg-violet-50 px-2 py-0.5 text-[10px] uppercase tracking-wider text-violet-600">
           {badge}
         </span>
       )}

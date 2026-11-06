@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { AnalysisProgress } from "@/components/analysis/AnalysisProgress";
 import { CreditsExhaustedDialog } from "@/components/analysis/CreditsExhaustedDialog";
 import {
@@ -10,11 +9,11 @@ import {
   RequestErrorNotice,
   SignInPrompt,
 } from "@/components/analysis/JobNotices";
-import { AuthStatus } from "@/components/AuthStatus";
 import { UploadNotice } from "@/components/legal/UploadNotice";
 import { SeriesResults } from "@/components/series/SeriesResults";
+import { ReportActions } from "@/components/exports/ReportActions";
 import { SeriesUploader, type SelectedImage } from "@/components/series/SeriesUploader";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SiteHeader } from "@/components/SiteHeader";
 import { seriesResultOf } from "@/lib/analysis-view";
 import { useCredits } from "@/lib/credits-store";
 import { useI18n } from "@/lib/i18n/client";
@@ -81,23 +80,12 @@ export default function SeriesPage() {
 
   return (
     <div className="flex min-h-screen flex-col text-stone-900">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 pt-6 text-sm">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span>
-        </Link>
-        <div className="flex items-center gap-6">
-          <Link href="/" className="text-stone-600 transition-colors hover:text-stone-900">
-            {t.nav.singleAnalysis}
-          </Link>
-          <AuthStatus />
-          <LanguageSwitcher />
-        </div>
-      </nav>
+      <SiteHeader />
 
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-6 py-10">
         {!result && (
           <header>
-            <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">{t.series.title}</h1>
+            <h1 className="text-3xl tracking-tight sm:text-4xl">{t.series.title}</h1>
             <p className="mt-2 max-w-2xl text-stone-600">{t.series.intro(MAX_SERIES_IMAGES)}</p>
           </header>
         )}
@@ -119,10 +107,11 @@ export default function SeriesPage() {
               <p className="text-sm font-medium text-emerald-700">
                 {t.home.done} · {t.analysis.saved}
               </p>
-              <button type="button" onClick={reset} className="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-stone-700">
+              <button type="button" onClick={reset} className="bg-signal px-4 py-2 text-sm font-semibold text-on-signal transition-colors hover:bg-signal-soft">
                 {t.series.newSeries}
               </button>
             </div>
+            {state.phase === "completed" && <ReportActions analysis={state.analysis} canShare />}
             <SeriesResults result={result} previewUrls={previewUrls} />
           </>
         ) : state.phase === "detached" ? (
@@ -148,7 +137,7 @@ export default function SeriesPage() {
                 type="button"
                 onClick={startAnalysis}
                 disabled={images.length < 2 || credits.status === "loading"}
-                className="rounded-xl px-5 py-2.5 text-sm font-medium bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-md shadow-violet-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:from-stone-200 disabled:to-stone-200 disabled:text-stone-400 disabled:shadow-none"
+                className="rounded-xl px-5 py-2.5 text-sm font-medium bg-signal text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:bg-stone-200 disabled:text-stone-400"
               >
                 {images.length < 2 ? t.series.selectAtLeastTwo : t.series.analyzeN(images.length)}
               </button>

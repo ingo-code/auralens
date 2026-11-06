@@ -8,5 +8,7 @@ Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und 
 
 ## Regeln für die Entwicklung
 - Schreibe sauberen, modularen TypeScript-Code.
-- Nutze Tailwind CSS für ein modernes, responsives helles Design (warmes Off-White, weiße Karten mit weichen Schatten, Akzente Violett→Fuchsia).
+- Design "Calibrated Darkroom": neutrales Dunkelgrau wie in Lightroom/Capture One, Farbe nur aus den Fotos, ein Signal-Orange für Aktionen und Ausreißer. Schriften: Playfair Display (Headlines), Inter (UI), JetBrains Mono (technische Werte). Kantige Flächen, Haarlinien statt Schatten.
+- Das Farbsystem steht zentral in `app/globals.css`. Neue Komponenten nutzen die Darkroom-Tokens (`bg-room`, `bg-panel`, `text-ink`, `text-ink-muted`, `border-hairline`, `bg-signal` …); die alten stone/violet-Klassen sind dort auf Dunkel umgemappt.
+- Marketing-Texte nennen nur Funktionen, die AuraLens wirklich hat (UWG).
 - Achte auf sauberes Error Handling bei API-Aufrufen (insb. Bild-Uploads und Claude Vision).

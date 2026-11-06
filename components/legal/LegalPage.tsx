@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { SiteHeader } from "@/components/SiteHeader";
 import type { ReactNode } from "react";
 import { getMessages } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -9,16 +9,18 @@ export async function LegalPage({ title, children }: { title: string; children: 
   const t = getMessages(locale);
 
   return (
-    <div className="min-h-screen px-6 py-12 text-stone-900">
-      <article className="mx-auto max-w-3xl">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span>
-        </Link>
-        <h1 className="mt-6 text-3xl font-semibold tracking-tight">{title}</h1>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <article className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-8">
+        <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">
+          <span className="inline-block h-2 w-2 bg-signal" aria-hidden="true" />
+          AuraLens
+        </span>
+        <h1 className="mt-2 text-4xl text-ink">{title}</h1>
         {locale !== "de" && (
-          <p className="mt-3 rounded-lg bg-stone-100 px-3 py-2 text-sm text-stone-600">{t.legal.germanOnly}</p>
+          <p className="mt-3 border-l-2 border-signal bg-panel px-3 py-2 text-sm text-ink-muted">{t.legal.germanOnly}</p>
         )}
-        <div className="legal-prose mt-8 space-y-4 text-[15px] leading-relaxed text-stone-700 [&_a]:text-violet-700 [&_a]:underline [&_h2]:mt-10 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-stone-900 [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-stone-900 [&_li]:ml-5 [&_li]:list-disc">
+        <div className="legal-prose mt-8 space-y-4 text-[15px] leading-relaxed text-ink-muted [&_a]:text-signal-soft [&_a]:underline [&_h2]:mt-10 [&_h2]:text-2xl [&_h2]:text-ink [&_h3]:mt-6 [&_h3]:font-semibold [&_h3]:text-ink [&_strong]:text-ink [&_li]:ml-5 [&_li]:list-disc">
           {children}
         </div>
       </article>
@@ -30,7 +32,7 @@ export async function LegalPage({ title, children }: { title: string; children: 
 export function MissingConfigNotice({ missing }: { missing: string[] }) {
   if (missing.length === 0) return null;
   return (
-    <div role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+    <div role="alert" className="border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
       <p className="font-semibold">Angaben unvollständig – so nicht veröffentlichen.</p>
       <p className="mt-1">
         Fehlende Umgebungsvariablen: <code>{missing.join(", ")}</code> (siehe <code>docs/RECHTLICHES.md</code>).

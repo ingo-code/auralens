@@ -33,6 +33,9 @@ export type AnalysisJobRow = {
   created_at: string;
   started_at: string | null;
   completed_at: string | null;
+  /** Read-only share link token; null when the report is not shared. */
+  share_token?: string | null;
+  shared_at?: string | null;
 };
 
 export type ApiKeyRow = {
@@ -250,6 +253,42 @@ export async function deleteJob(userId: string, id: string): Promise<boolean> {
   return (data ?? []).length > 0;
 }
 
+/**
+ * Sets (token) or clears (null) the share link of one completed analysis of
+ * the user. Returns the updated row, or null if there is no such analysis.
+ */
+export async function setShareToken(
+  userId: string,
+  id: string,
+  token: string | null
+): Promise<Pick<AnalysisJobRow, "id" | "share_token" | "shared_at"> | null> {
+  const { data, error } = await getAdminClient()
+    .from("analysis_jobs")
+    .update({ share_token: token, shared_at: token ? new Date().toISOString() : null })
+    .eq("user_id", userId)
+    .eq("id", id)
+    .eq("status", "completed")
+    .select("id, share_token, shared_at")
+    .maybeSingle<Pick<AnalysisJobRow, "id" | "share_token" | "shared_at">>();
+  if (error) fail("setShareToken", error);
+  return data;
+}
+
+/**
+ * The one lookup that is not scoped to a user: the share token itself is the
+ * credential. Only completed analyses with an active token are returned.
+ */
+export async function getSharedJob(token: string): Promise<AnalysisJobRow | null> {
+  const { data, error } = await getAdminClient()
+    .from("analysis_jobs")
+    .select("*")
+    .eq("share_token", token)
+    .eq("status", "completed")
+    .maybeSingle<AnalysisJobRow>();
+  if (error) fail("getSharedJob", error);
+  return data;
+}
+
 /** queued -> running. False if the job was deleted (or already picked up) meanwhile. */
 export async function markJobRunning(id: string): Promise<boolean> {
   const { data, error } = await getAdminClient()
@@ -404,7 +443,12 @@ export async function hasBetaAccess(userId: string): Promise<boolean> {
 // Audit log
 // ---------------------------------------------------------------------------
 
-export type AuditEvent = "api_key.created" | "api_key.revoked" | "account.exported";
+export type AuditEvent =
+  | "api_key.created"
+  | "api_key.revoked"
+  | "account.exported"
+  | "analysis.shared"
+  | "analysis.unshared";
 
 /**
  * Records a security-relevant account event. Best effort: the action itself

@@ -1,19 +1,27 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { getMessages } from "@/lib/i18n";
 import { LocaleProvider } from "@/lib/i18n/client";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { LegalFooter } from "@/components/legal/LegalFooter";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// next/font downloads the fonts at build time and serves them from our own
+// domain - no request to Google from the visitor's browser (GDPR).
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains",
   subsets: ["latin"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -27,7 +35,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang={locale}
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${playfair.variable} h-full antialiased`}
     >
       {/* Browser extensions (e.g. Grammarly) inject attributes into <body> before
           React hydrates; this silences only that element's attribute mismatch. */}

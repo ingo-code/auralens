@@ -78,7 +78,7 @@ export const POST = apiRoute(async (ctx) => {
 
   const processed = await processImages(ctx, buffers);
   const fileInfo = processed.map((image, i) =>
-    describeImageFile(i + 1, files[i].name, image.originalWidth, image.originalHeight)
+    describeImageFile(i + 1, files[i].name, image.originalWidth, image.originalHeight, image.measurements)
   );
   const credits = processed.length * API_LIMITS.creditsPerImage;
 

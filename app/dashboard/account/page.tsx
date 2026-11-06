@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { AccountDataPanel } from "@/components/account/AccountDataPanel";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { DashboardNav } from "@/components/DashboardNav";
+import { SiteHeader } from "@/components/SiteHeader";
 import { getMessages } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -20,20 +20,16 @@ export default async function AccountPage() {
   if (!email) redirect("/login");
 
   return (
-    <div className="min-h-screen px-6 py-12 text-stone-900">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <Link href="/dashboard" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
-              {t.dashboard.back}
-            </Link>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.account.title}</h1>
-            <p className="mt-1 text-sm text-stone-500">{t.account.intro}</p>
-          </div>
-          <LanguageSwitcher />
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-8">
+        <DashboardNav title={t.account.title}>
+          <p className="text-sm text-ink-muted">{t.account.intro}</p>
+        </DashboardNav>
+        <div className="max-w-3xl">
+          <AccountDataPanel email={email} />
         </div>
-        <AccountDataPanel email={email} />
-      </div>
+      </main>
     </div>
   );
 }

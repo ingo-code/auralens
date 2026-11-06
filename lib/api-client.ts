@@ -1,5 +1,5 @@
 import type { ApiErrorCode, ProblemDetails } from "@/lib/api/errors";
-import type { AnalysisResource, UploadBatchResource, UsageResource } from "@/lib/api/resources";
+import type { AnalysisResource, ShareResource, UploadBatchResource, UsageResource } from "@/lib/api/resources";
 import type { Messages } from "@/lib/i18n";
 
 /*
@@ -120,6 +120,16 @@ export async function validateInviteCode(code: string, t: Messages): Promise<voi
 
 export function fetchUsage(t: Messages): Promise<UsageResource> {
   return request<UsageResource>("/api/v1/usage", t);
+}
+
+/** Creates (or returns the active) read-only share link of a completed analysis. */
+export function createShareLink(analysisId: string, t: Messages): Promise<ShareResource> {
+  return request<ShareResource>(`/api/v1/analyses/${encodeURIComponent(analysisId)}/share`, t, { method: "POST" });
+}
+
+/** Disables the share link; the old link stops working immediately. */
+export async function deleteShareLink(analysisId: string, t: Messages): Promise<void> {
+  await request<void>(`/api/v1/analyses/${encodeURIComponent(analysisId)}/share`, t, { method: "DELETE" });
 }
 
 function isFinished(analysis: AnalysisResource): boolean {

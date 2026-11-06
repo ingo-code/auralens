@@ -5,6 +5,7 @@ import type { Messages } from "@/lib/i18n";
 import type { AnalysisJobRow, AnalysisStatus, AnalysisType, ApiKeyRow } from "@/lib/api/repository";
 import type { SeriesAnalysis, SeriesImageFile } from "@/lib/series-analysis-schema";
 import type { SeriesOrganization } from "@/lib/series-organize";
+import { seriesMeasurementOf, type SeriesMeasurement } from "@/lib/measure/series-comparison";
 
 /*
  * Public JSON shapes of the API v1 resources. Field names are part of the
@@ -33,7 +34,39 @@ export type AnalysisResource = {
   report?: StyleAnalysis | SeriesAnalysis | null;
   /** Only for completed series, arranged per `?sort=&order=&group=`. */
   organization?: SeriesOrganization;
+  /**
+   * Only on single-resource responses of series: the measured comparison of
+   * all images (lib/measure), null for analyses without measurements.
+   */
+  measurement?: SeriesMeasurement | null;
+  /** Only on single-resource responses for the owner: the active share link, or null. */
+  share?: ShareResource | null;
 };
+
+/** A read-only link to one completed report (no images). */
+export type ShareResource = {
+  object: "share";
+  token: string;
+  /** Path of the public report page, relative to the AuraLens origin. */
+  path: string;
+  /** Absolute link; only in responses of the share endpoint. */
+  url?: string;
+  createdAt: string;
+};
+
+export function sharePath(token: string): string {
+  return `/r/${token}`;
+}
+
+export function toShareResource(row: { share_token?: string | null; shared_at?: string | null }): ShareResource | null {
+  if (!row.share_token) return null;
+  return {
+    object: "share",
+    token: row.share_token,
+    path: sharePath(row.share_token),
+    createdAt: row.shared_at ?? new Date(0).toISOString(),
+  };
+}
 
 export type ListResource<T> = {
   object: "list";
@@ -99,7 +132,7 @@ const ERROR_MESSAGES: Record<AnalysisErrorCode, ErrorMessageKey> = {
 export function toAnalysisResource(
   row: Omit<AnalysisJobRow, "report"> & { report?: AnalysisJobRow["report"] },
   t: Messages,
-  extras: { includeReport?: boolean; organization?: SeriesOrganization } = {}
+  extras: { includeReport?: boolean; includeShare?: boolean; organization?: SeriesOrganization } = {}
 ): AnalysisResource {
   const errorCode = row.error?.code;
   const resource: AnalysisResource = {
@@ -123,7 +156,9 @@ export function toAnalysisResource(
     },
   };
   if (extras.includeReport) resource.report = row.report ?? null;
+  if (extras.includeReport && row.type === "series") resource.measurement = seriesMeasurementOf(row.files);
   if (extras.organization) resource.organization = extras.organization;
+  if (extras.includeShare) resource.share = toShareResource(row);
   return resource;
 }
 

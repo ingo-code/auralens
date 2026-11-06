@@ -16,7 +16,7 @@ export function CreditBadge() {
       href="/dashboard/api"
       title={t.nav.creditsTitle}
       data-testid="credit-badge"
-      className={`rounded-full px-3 py-1 text-xs font-medium ring-1 transition-colors ${
+      className={`px-3 py-1 text-xs font-medium ring-1 transition-colors ${
         low
           ? "bg-amber-50 text-amber-800 ring-amber-200 hover:bg-amber-100"
           : "bg-violet-50 text-violet-700 ring-violet-200 hover:bg-violet-100"

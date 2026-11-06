@@ -27,6 +27,7 @@ const repo = vi.hoisted(() => ({
   deleteUserAccount: vi.fn(),
   recordAuditEvent: vi.fn(),
   isInviteCodeAvailable: vi.fn(),
+  setShareToken: vi.fn(),
 }));
 const uploadsMock = vi.hoisted(() => ({
   createUploadSlots: vi.fn(),
@@ -70,6 +71,7 @@ vi.mock("@anthropic-ai/sdk", async () => {
 
 const analyses = await import("@/app/api/v1/analyses/route");
 const analysis = await import("@/app/api/v1/analyses/[id]/route");
+const share = await import("@/app/api/v1/analyses/[id]/share/route");
 const usage = await import("@/app/api/v1/usage/route");
 const uploads = await import("@/app/api/v1/uploads/route");
 const unknownRoute = await import("@/app/api/v1/[...path]/route");
@@ -494,6 +496,75 @@ describe("GET/DELETE /api/v1/analyses/{id}", () => {
 
     expect(res.status).toBe(204);
     expect(repo.deleteJob).toHaveBeenCalledWith(USER_ID, JOB_ID);
+  });
+});
+
+describe("Teilen-Link /api/v1/analyses/{id}/share", () => {
+  const TOKEN = "A".repeat(43);
+
+  it("erstellt für eine abgeschlossene Analyse einen Link und protokolliert ihn", async () => {
+    repo.getJob.mockResolvedValue(jobRow({ status: "completed", report: VALID_STYLE_REPORT }));
+    repo.setShareToken.mockImplementation(async (_user: string, id: string, token: string) => ({
+      id,
+      share_token: token,
+      shared_at: "2026-11-06T10:00:00+00:00",
+    }));
+
+    const res = await share.POST(request(`/analyses/${JOB_ID}/share`, { method: "POST", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(201);
+    const body = await res.json();
+    expect(body.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(body.path).toBe(`/r/${body.token}`);
+    expect(body.url).toBe(`http://localhost:3001/r/${body.token}`);
+    expect(repo.setShareToken).toHaveBeenCalledWith(USER_ID, JOB_ID, body.token);
+    expect(repo.recordAuditEvent).toHaveBeenCalledWith(expect.objectContaining({ event: "analysis.shared" }));
+  });
+
+  it("gibt einen bestehenden Link unverändert zurück", async () => {
+    repo.getJob.mockResolvedValue(jobRow({ status: "completed", share_token: TOKEN, shared_at: "2026-11-01T10:00:00+00:00" }));
+
+    const res = await share.POST(request(`/analyses/${JOB_ID}/share`, { method: "POST", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(200);
+    expect((await res.json()).token).toBe(TOKEN);
+    expect(repo.setShareToken).not.toHaveBeenCalled();
+  });
+
+  it("lehnt laufende Analysen ab", async () => {
+    repo.getJob.mockResolvedValue(jobRow({ status: "running" }));
+
+    const res = await share.POST(request(`/analyses/${JOB_ID}/share`, { method: "POST", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(400);
+    expect(repo.setShareToken).not.toHaveBeenCalled();
+  });
+
+  it("verlangt Schreibrechte", async () => {
+    repo.findActiveApiKeyByHash.mockResolvedValue(keyRow(["analyses:read"]));
+
+    const res = await share.POST(request(`/analyses/${JOB_ID}/share`, { method: "POST", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(403);
+  });
+
+  it("deaktiviert einen Link mit 204", async () => {
+    repo.getJob.mockResolvedValue(jobRow({ status: "completed", share_token: TOKEN }));
+    repo.setShareToken.mockResolvedValue({ id: JOB_ID, share_token: null, shared_at: null });
+
+    const res = await share.DELETE(request(`/analyses/${JOB_ID}/share`, { method: "DELETE", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(204);
+    expect(repo.setShareToken).toHaveBeenCalledWith(USER_ID, JOB_ID, null);
+    expect(repo.recordAuditEvent).toHaveBeenCalledWith(expect.objectContaining({ event: "analysis.unshared" }));
+  });
+
+  it("antwortet bei fremden Analysen mit 404", async () => {
+    repo.getJob.mockResolvedValue(null);
+
+    const res = await share.POST(request(`/analyses/${JOB_ID}/share`, { method: "POST", headers: withKey() }), params({ id: JOB_ID }));
+
+    expect(res.status).toBe(404);
   });
 });
 

@@ -99,7 +99,8 @@ Credits werden beim Start reserviert. Scheitert die Analyse, werden sie **automa
     "completedSteps": ["prompts"]                       // parallel, Reihenfolge beliebig
   },
   "report": { … },                  // nur bei GET /analyses/{id}; Aufbau siehe docs/API.md
-  "organization": { … }             // nur bei abgeschlossenen Serien
+  "organization": { … },            // nur bei abgeschlossenen Serien
+  "share": null                     // nur bei GET /analyses/{id}: aktiver Teilen-Link oder null
 }
 ```
 
@@ -118,6 +119,40 @@ Credits werden beim Start reserviert. Scheitert die Analyse, werden sie **automa
 | `upstream_rate_limited` / `upstream_unavailable` | KI-Dienst überlastet/nicht erreichbar – später erneut |
 | `processing_interrupted` | Serverneustart oder Zeitüberschreitung während der Analyse (Credits erstattet) |
 | `internal_error` | Sonstiger Serverfehler |
+
+### Messwerte: `files[].measurements` und `measurement`
+
+Jedes Bild wird beim Upload aus den Pixeln vermessen (sRGB, Arbeitsgröße 1024 px lange Kante, eingebettete ICC-Profile werden umgerechnet). Die Werte sind deterministisch und werden nicht von der KI geschätzt. Claude bekommt sie als verbindliche Fakten und übernimmt die Korrekturzahlen daraus.
+
+| Feld | Verfahren |
+|---|---|
+| `exposure.keyEv` | Log-Mittel der Luminanz Y relativ zu 18 % Grau, in Blenden (EV) |
+| `exposure.lightness` | Perzentile 2 / 50 / 98 von CIE L* |
+| `clipping` | Anteil Pixel mit max(R,G,B) ≥ 254 bzw. ≤ 2 |
+| `contrast.rms` / `range` | Standardabweichung von L* / Spanne p2–p98 |
+| `color.meanChroma` / `colorfulness` | mittleres C*ab der Mitteltöne / Hasler & Süsstrunk (2003) |
+| `whiteBalance` | a*, b* der 10 % farbärmsten Mitteltöne; daraus CCT (nächster Punkt der Planck-Kurve, Krystek 1985) und Duv. 6504 K, Duv +0,0032 = neutral |
+| `sharpness.focus` / `global` | Laplace-Varianz der schärfsten 10 % der Kacheln (8×8) / des ganzen Bildes, abzüglich Rauschanteil |
+| `noise.sigma` | Immerkær (1996) in den 25 % flachsten Kacheln, 0–255-Skala |
+| `palette` | k-Means in CIE Lab (deterministisch), Anteile 0–1 |
+
+`measurement` (nur `GET /analyses/{id}` bei Serien) vergleicht jedes Bild mit dem Median der Serie und liefert `score` (0–100), `deviations` (mit `severity`) und `correction`: `exposureEv`, `temperatureK` / `temperatureMired` (negativ = kühler stellen), `tint` (`direction`, `duv`), `contrastPercent`, `saturation`. Schwellen: 1/3 EV, 10 Mired, Duv 0,003, 25 % bei Kontrast und Sättigung. `null` bei Analysen ohne Messwerte.
+
+### Teilen-Link: `/analyses/{id}/share`
+
+Ein schreibgeschützter Link auf den Bericht einer **abgeschlossenen** Analyse (nur Text, keine Bilder). Wer den Link hat, kann den Bericht ohne Konto lesen.
+
+| Methode | Scope | Wirkung |
+|---|---|---|
+| `POST` | `analyses:write` | Erstellt den Link (`201`) oder gibt den aktiven unverändert zurück (`200`). Nicht abgeschlossene Analyse → `400` |
+| `GET` | `analyses:read` | Aktiver Link, sonst `404` |
+| `DELETE` | `analyses:write` | Deaktiviert den Link sofort (`204`); ein neuer `POST` erzeugt einen neuen Link |
+
+```json
+{ "object": "share", "token": "q3X…", "path": "/r/q3X…", "url": "https://…/r/q3X…", "createdAt": "2026-11-06T10:00:00+00:00" }
+```
+
+Erstellen und Deaktivieren stehen im Audit-Log (`analysis.shared`, `analysis.unshared`).
 
 ### `GET /analyses`
 

@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { CreditBadge } from "@/components/CreditBadge";
 import { DeleteAnalysisButton } from "@/components/DeleteAnalysisButton";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { DashboardNav } from "@/components/DashboardNav";
+import { SiteHeader } from "@/components/SiteHeader";
 import { failStaleJobs, type AnalysisStatus, type AnalysisType } from "@/lib/api/repository";
 import { getMessages } from "@/lib/i18n";
 import { INTL_LOCALES } from "@/lib/i18n/config";
@@ -113,65 +113,37 @@ export default async function DashboardPage() {
   const formatDate = (iso: string) => new Date(iso).toLocaleString(INTL_LOCALES[locale]);
 
   return (
-    <div className="min-h-screen px-6 py-12 text-stone-900">
-      <div className="mx-auto max-w-4xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span>
-            </Link>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.dashboard.title}</h1>
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <CreditBadge />
-            <LanguageSwitcher />
-            <Link href="/dashboard/api" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
-              {t.apiKeys.navLink}
-            </Link>
-            <Link href="/dashboard/account" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
-              {t.account.navLink}
-            </Link>
-            <Link
-              href="/serie"
-              className="rounded-full border border-violet-200 bg-white px-4 py-2 text-sm font-medium text-violet-700 shadow-sm transition-colors hover:bg-violet-50"
-            >
-              {t.dashboard.newSeries}
-            </Link>
-            <Link
-              href="/"
-              className="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-stone-700"
-            >
-              {t.dashboard.newAnalysis}
-            </Link>
-          </div>
-        </div>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-8">
+        <DashboardNav title={t.dashboard.title} />
 
         {items.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-stone-300 bg-white/60 p-10 text-center text-stone-500">
+          <p className="border border-dashed border-stone-300 bg-room-deep p-10 text-center font-mono text-sm text-ink-muted">
             {t.dashboard.empty}
           </p>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((item) =>
               item.kind === "v1" ? (
                 <article
                   key={item.id}
-                  className="flex gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
+                  className="flex gap-4 border border-hairline bg-panel p-4 transition-colors hover:border-stone-300"
                 >
                   <Link href={`/dashboard/analyses/${item.id}`} className="flex min-w-0 flex-1 gap-4">
-                    <Swatches colors={item.colors} />
+                    <Swatches colors={item.colors} pending={item.status === "queued" || item.status === "running"} />
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-                        <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-700">
+                        <span className="bg-violet-50 px-2 py-0.5 text-violet-700">
                           {item.type === "series" ? t.dashboard.seriesBadge(item.imageCount) : t.dashboard.imageBadge}
                         </span>
                         {item.status !== "completed" && (
-                          <span className={`rounded-full px-2 py-0.5 ${STATUS_STYLES[item.status]}`}>
+                          <span className={`px-2 py-0.5 ${STATUS_STYLES[item.status]}`}>
                             {t.dashboard.status[item.status]}
                           </span>
                         )}
                       </div>
-                      <p className="mt-1 text-xs text-stone-500">{formatDate(item.createdAt)}</p>
+                      <p className="mt-1 font-mono text-[11px] text-ink-muted">{formatDate(item.createdAt)}</p>
                       {item.title && <p className="mt-1 line-clamp-2 text-sm text-stone-700">{item.title}</p>}
                       <p className="mt-2 text-xs font-medium text-violet-700">{t.dashboard.open}</p>
                     </div>
@@ -181,19 +153,19 @@ export default async function DashboardPage() {
               ) : (
                 <article
                   key={item.id}
-                  className="flex gap-4 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
+                  className="flex gap-4 border border-hairline bg-panel p-4"
                 >
                   {item.imageUrl && (
                     // eslint-disable-next-line @next/next/no-img-element -- signierte Supabase-Storage-URL, kein optimierbares Remote-Bild
                     <img
                       src={item.imageUrl}
                       alt=""
-                      className="h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-stone-200"
+                      className="h-20 w-20 shrink-0  object-cover ring-1 ring-stone-200"
                     />
                   )}
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-stone-500">
-                      <span className="rounded-full bg-stone-100 px-2 py-0.5 text-stone-600" title={t.dashboard.archivedHint}>
+                      <span className="bg-stone-100 px-2 py-0.5 text-stone-600" title={t.dashboard.archivedHint}>
                         {t.dashboard.archived}
                       </span>{" "}
                       {formatDate(item.createdAt)}
@@ -201,7 +173,7 @@ export default async function DashboardPage() {
                     <p className="mt-1 line-clamp-2 text-sm text-stone-700">{item.report.style.summary}</p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {item.report.emotions.slice(0, 3).map((emotion) => (
-                        <span key={emotion} className="rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
+                        <span key={emotion} className="bg-violet-50 px-2 py-0.5 text-xs text-violet-700">
                           {emotion}
                         </span>
                       ))}
@@ -213,18 +185,18 @@ export default async function DashboardPage() {
             )}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
 
 /** Palette preview instead of a thumbnail - API analyses don't store images. */
-function Swatches({ colors }: { colors: string[] }) {
+function Swatches({ colors, pending }: { colors: string[]; pending: boolean }) {
   if (colors.length === 0) {
-    return <div className="h-20 w-20 shrink-0 animate-pulse rounded-xl bg-stone-100" aria-hidden="true" />;
+    return <div className={`h-20 w-20 shrink-0 bg-panel-high ${pending ? "animate-pulse" : ""}`} aria-hidden="true" />;
   }
   return (
-    <div className="grid h-20 w-20 shrink-0 grid-cols-2 overflow-hidden rounded-xl ring-1 ring-stone-200" aria-hidden="true">
+    <div className="grid h-20 w-20 shrink-0 grid-cols-2 overflow-hidden  ring-1 ring-stone-200" aria-hidden="true">
       {colors.slice(0, 4).map((hex, i) => (
         <span key={`${hex}-${i}`} style={{ backgroundColor: hex }} />
       ))}

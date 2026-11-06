@@ -1,3 +1,4 @@
+import type { ImageMeasurements } from "@/lib/measure/image-metrics";
 import { z } from "zod";
 import { getMessages, type Messages } from "@/lib/i18n";
 import { DEFAULT_LOCALE, INTL_LOCALES, type Locale } from "@/lib/i18n/config";
@@ -58,9 +59,16 @@ export function getOrientation(width: number, height: number): Orientation {
 }
 
 /** Measures what a stock upload needs to know about a file - no AI involved. */
-export function describeImageFile(index: number, name: string, width: number, height: number): SeriesImageFile {
+export function describeImageFile(
+  index: number,
+  name: string,
+  width: number,
+  height: number,
+  measurements?: ImageMeasurements
+): SeriesImageFile {
   const megapixels = Math.round((width * height) / 100_000) / 10;
   return {
+    ...(measurements ? { measurements } : {}),
     index,
     name,
     width,

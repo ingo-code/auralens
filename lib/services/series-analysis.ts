@@ -6,6 +6,7 @@ import { buildSystemPrompt, CLAUDE_MODEL, getClaudeClient, outputLanguage } from
 import { AnalysisError } from "@/lib/claude/errors";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import type { ProcessedImage } from "@/lib/image-processing";
+import { measuredFactsPrompt } from "@/lib/measure/prompt-facts";
 import { aspectRatioInstruction, dominantAspectRatio } from "@/lib/prompt-engine";
 import {
   ConsistencyPartSchema,
@@ -204,10 +205,14 @@ export async function analyzeSeries(
     images.map((image) => ({ width: image.originalWidth, height: image.originalHeight }))
   );
 
+  // Measured pixel values replace estimates for every correction number.
+  const facts = measuredFactsPrompt(images.map((image) => image.measurements));
+  const consistencyPrompt = facts ? `${CONSISTENCY_PROMPT}\n\n${facts}` : CONSISTENCY_PROMPT;
+
   const [consistency, market, prompts] = await Promise.all([
     track(
       "consistency",
-      requestPart("consistency", imageContent, CONSISTENCY_PROMPT, ConsistencyPartSchema, locale, controller.signal)
+      requestPart("consistency", imageContent, consistencyPrompt, ConsistencyPartSchema, locale, controller.signal)
     ),
     track("market", requestPart("market", imageContent, MARKET_PROMPT, MarketPartSchema, locale, controller.signal)),
     track(

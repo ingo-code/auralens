@@ -1,28 +1,124 @@
 @import "tailwindcss";
 
-:root {
-  --background: #faf9f7;
-  --foreground: #1c1917;
+/*
+ * "Calibrated Darkroom" – AuraLens design system.
+ *
+ * Idea: photographers judge color on neutral grey (like Lightroom / Capture One),
+ * so the interface itself stays colorless. Color comes only from the photos,
+ * the extracted palettes and one signal orange for actions and outliers.
+ *
+ * Trick: the existing components use Tailwind's stone / white / violet / fuchsia
+ * classes. Instead of rewriting every file, those scales are remapped here:
+ *   - stone  -> inverted darkroom greys (stone-50 = dark surface, stone-900 = light text)
+ *   - white  -> card surface, black stays black
+ *   - violet / fuchsia -> signal orange (50 = dark tint, 700 = light text)
+ *   - red / emerald / amber -> inverted so status colors stay readable on dark
+ * Contrast pairs (e.g. "bg-white text-stone-900") therefore keep working.
+ */
+
+@theme {
+  --color-white: #181818;
+  --color-black: #000000;
+
+  --color-stone-50: #1b1b1c;
+  --color-stone-100: #232323;
+  --color-stone-200: #2e2e2e;
+  --color-stone-300: #3d3d3d;
+  --color-stone-400: #6f6d6c;
+  --color-stone-500: #959391;
+  --color-stone-600: #b3b1af;
+  --color-stone-700: #cfcdcb;
+  --color-stone-800: #dedbda;
+  --color-stone-900: #ece9e8;
+
+  --color-violet-50: #2a1a12;
+  --color-violet-100: #3a2116;
+  --color-violet-200: #5a3020;
+  --color-violet-300: #8a4426;
+  --color-violet-400: #c4552a;
+  --color-violet-500: #ef6632;
+  --color-violet-600: #e35d2a;
+  --color-violet-700: #ffb59c;
+  --color-violet-800: #ffc9b5;
+  --color-violet-900: #ffdbcf;
+
+  --color-fuchsia-50: #2a1d12;
+  --color-fuchsia-100: #3a2716;
+  --color-fuchsia-500: #f08a3c;
+
+  --color-red-50: #2c1514;
+  --color-red-100: #3b1a18;
+  --color-red-200: #5c2420;
+  --color-red-500: #ef5350;
+  --color-red-600: #ff7a70;
+  --color-red-700: #ffa49c;
+  --color-red-800: #ffc4bd;
+
+  --color-emerald-50: #10241b;
+  --color-emerald-100: #143022;
+  --color-emerald-500: #3fbf85;
+  --color-emerald-600: #5fd39c;
+  --color-emerald-700: #86e0b5;
+
+  --color-amber-50: #2a2110;
+  --color-amber-100: #3a2d12;
+  --color-amber-200: #5a4518;
+  --color-amber-300: #8a6a20;
+  --color-amber-500: #e0a030;
+  --color-amber-600: #f0b448;
+  --color-amber-700: #f5c56e;
+  --color-amber-800: #f8d590;
+  --color-amber-900: #fbe4b5;
+
+  /* Darkroom tokens for new code (e.g. bg-room, text-signal). */
+  --color-room: #131313;
+  --color-room-deep: #0e0e0e;
+  --color-panel: #1b1b1c;
+  --color-panel-high: #2a2a2a;
+  --color-hairline: #2e2e2e;
+  --color-ink: #e5e2e1;
+  --color-ink-muted: #a9a7a5;
+  --color-signal: #ef6632;
+  --color-signal-soft: #ffb59c;
+  --color-on-signal: #3a1000;
+
+  /* Sharp, print-like corners instead of bubbly cards; pills stay round. */
+  --radius-lg: 0.25rem;
+  --radius-xl: 0.25rem;
+  --radius-2xl: 0.375rem;
+  --radius-3xl: 0.5rem;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-room);
+  --color-foreground: var(--color-ink);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, Consolas, monospace;
+  --font-display: var(--font-playfair), Georgia, "Times New Roman", serif;
+}
+
+:root {
+  color-scheme: dark;
 }
 
 body {
-  color: var(--foreground);
-  /* Soft "aura" glow behind the content - the brand motif of AuraLens. */
-  background:
-    radial-gradient(60rem 30rem at 15% -5%, rgb(167 139 250 / 0.18), transparent 70%),
-    radial-gradient(50rem 28rem at 90% 0%, rgb(244 114 182 / 0.12), transparent 70%),
-    radial-gradient(40rem 24rem at 50% 105%, rgb(251 191 36 / 0.08), transparent 70%),
-    var(--background);
-  background-attachment: fixed;
+  background: var(--color-room);
+  color: var(--color-ink);
+}
+
+/* Editorial serif for page headlines across the app. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }
 
 ::selection {
-  background: rgb(167 139 250 / 0.3);
+  background: rgb(239 102 50 / 0.35);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-signal);
+  outline-offset: 2px;
 }

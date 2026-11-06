@@ -50,12 +50,12 @@ export function SeriesUploader({ images, onAdd, onRemove, disabled = false }: Se
           setIsDragging(false);
           if (!disabled) addFiles(event.dataTransfer.files);
         }}
-        className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-10 text-center transition-colors ${
+        className={`flex flex-col items-center justify-center gap-2 border border-dashed px-6 py-10 text-center transition-colors ${
           disabled || full ? "cursor-not-allowed opacity-50" : "cursor-pointer"
         } ${
           isDragging
-            ? "border-violet-500 bg-violet-50 shadow-lg shadow-violet-500/10"
-            : "border-stone-300 bg-white/80 shadow-sm backdrop-blur hover:border-violet-400 hover:bg-white hover:shadow-md"
+            ? "border-violet-500 bg-violet-50"
+            : "border-stone-300 bg-white/80 hover:border-violet-400 hover:bg-white"
         }`}
       >
         <input
@@ -82,7 +82,7 @@ export function SeriesUploader({ images, onAdd, onRemove, disabled = false }: Se
       {images.length > 0 && (
         <ol className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {images.map((image, i) => (
-            <li key={image.previewUrl} className="group relative overflow-hidden rounded-xl border border-stone-200 bg-white shadow-sm">
+            <li key={image.previewUrl} className="group relative overflow-hidden rounded-xl border border-stone-200 bg-white">
               {/* eslint-disable-next-line @next/next/no-img-element -- Objekt-URL einer lokalen Datei */}
               <img src={image.previewUrl} alt={image.file.name} className="aspect-square w-full object-cover" />
               <span className="absolute left-1.5 top-1.5 rounded bg-white/90 px-1.5 py-0.5 text-xs font-medium text-stone-900">

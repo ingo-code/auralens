@@ -1,3 +1,4 @@
+import type { ImageMeasurements } from "@/lib/measure/image-metrics";
 import { z } from "zod";
 import { platformPromptsSchema } from "@/lib/prompt-engine";
 
@@ -390,5 +391,7 @@ export const SeriesImageFileSchema = z.object({
   megapixels: z.number().nonnegative(),
   orientation: z.enum(ORIENTATIONS),
   stockResolutionOk: z.boolean(),
+  /** Pixel measurements (lib/measure); absent for analyses created before they existed. */
+  measurements: z.custom<ImageMeasurements>((value) => typeof value === "object" && value !== null).optional(),
 });
 export type SeriesImageFile = z.infer<typeof SeriesImageFileSchema>;

@@ -9,12 +9,12 @@ export function SignInPrompt() {
   const { t } = useI18n();
   const labels = t.analysis.signIn;
   return (
-    <div className="w-full rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-fuchsia-50 p-6 text-center shadow-sm">
-      <h2 className="text-lg font-semibold text-stone-900">{labels.title}</h2>
+    <div className="w-full border border-violet-200 bg-panel p-6 text-center">
+      <h2 className="text-lg text-stone-900">{labels.title}</h2>
       <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">{labels.body}</p>
       <Link
         href="/login"
-        className="mt-4 inline-block rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:brightness-110"
+        className="mt-4 inline-block rounded-xl bg-signal px-5 py-2 text-sm font-medium text-white transition hover:brightness-110"
       >
         {labels.cta}
       </Link>
@@ -26,7 +26,7 @@ export function SignInPrompt() {
 export function AnalysisFailedNotice({ analysis, onRetry }: { analysis: AnalysisResource; onRetry?: () => void }) {
   const { t } = useI18n();
   return (
-    <div role="alert" className="w-full rounded-2xl border border-red-200 bg-red-50 p-5 text-sm">
+    <div role="alert" className="w-full border border-red-200 bg-red-50 p-5 text-sm">
       <p className="font-semibold text-red-800">{t.analysis.failedTitle}</p>
       <p className="mt-1 text-red-700">{analysis.error?.message}</p>
       <p className="mt-1 text-red-700/80">{t.analysis.refunded(analysis.credits)}</p>
@@ -47,7 +47,7 @@ export function AnalysisFailedNotice({ analysis, onRetry }: { analysis: Analysis
 export function DetachedNotice({ analysisId }: { analysisId: string }) {
   const { t } = useI18n();
   return (
-    <div role="status" className="w-full rounded-2xl border border-stone-200 bg-white p-5 text-sm shadow-sm">
+    <div role="status" className="w-full border border-hairline bg-panel p-5 text-sm">
       <p className="text-stone-700">{t.analysis.detached}</p>
       <Link href={`/dashboard/analyses/${analysisId}`} className="mt-2 inline-block font-medium text-violet-700 hover:text-violet-900">
         {t.analysis.openDashboard} →

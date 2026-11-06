@@ -122,6 +122,19 @@ export default function DatenschutzPage() {
         über dich im Sinne von Art. 22 DSGVO; sie hat keine rechtliche Wirkung.
       </p>
 
+      <h3>Teilen-Links und Metadaten-Export</h3>
+      <p>
+        Du kannst für einen fertigen Bericht einen <strong>Teilen-Link</strong> erstellen. Wer den Link kennt, kann den
+        Bericht ohne Konto lesen: Texte, Werte, Farben, Dateinamen und Stock-Metadaten, aber keine Bilder. Der Link
+        besteht aus einer langen Zufallskennung, wird von Suchmaschinen nicht indexiert und gilt, bis du ihn
+        deaktivierst, den Bericht löschst oder dein Konto löschst. Erstellen und Deaktivieren protokollieren wir wie
+        unten beschrieben. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.
+      </p>
+      <p>
+        Wenn du Metadaten in deine Original-JPEGs schreibst oder das Bericht-Paket (ZIP) herunterlädst, geschieht das
+        vollständig in deinem Browser. Die Originale werden dabei <strong>nicht</strong> an AuraLens übertragen.
+      </p>
+
       <h2>6. API-Keys und Credits</h2>
       <p>
         Wenn du API-Keys erstellst, speichern wir Name, Anfangszeichen, Berechtigungen, Zeitpunkte von Erstellung und
@@ -130,7 +143,8 @@ export default function DatenschutzPage() {
         Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO. Speicherdauer: wie beim Konto.
       </p>
       <p>
-        Sicherheitsrelevante Vorgänge (API-Key erstellt oder widerrufen, Datenexport) protokollieren wir mit Zeitpunkt
+        Sicherheitsrelevante Vorgänge (API-Key erstellt oder widerrufen, Datenexport, Teilen-Link erstellt oder
+        deaktiviert) protokollieren wir mit Zeitpunkt
         und Request-Kennung, ohne IP-Adresse, damit sich Missbrauch nachvollziehen lässt. Rechtsgrundlage: Art. 6 Abs.
         1 lit. f DSGVO. Speicherdauer: wie beim Konto; das Protokoll ist im Datenexport enthalten.
       </p>

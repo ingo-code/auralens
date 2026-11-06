@@ -18,7 +18,9 @@ import {
   type PromptPlatform,
 } from "@/lib/prompt-engine";
 import type { StockMetadata } from "@/lib/series-analysis-schema";
-import { toAdobeStockCsv } from "@/lib/stock-export";
+import { CSV_PORTALS, toPortalCsv } from "@/lib/stock-export";
+import { downloadBlob, todayStamp } from "@/lib/download";
+import { EmbedMetadataPanel } from "@/components/exports/EmbedMetadataPanel";
 
 export type StockExportEntry = {
   /** Display label, e.g. "Bild 3". */
@@ -45,15 +47,6 @@ function CodeBlock({ text }: { text: string }) {
       {text}
     </pre>
   );
-}
-
-function downloadText(content: string, filename: string, type: string) {
-  const url = URL.createObjectURL(new Blob([content], { type }));
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
 }
 
 function PromptsPanel({ prompts, photographicSpec }: Pick<ExportTabsProps, "prompts" | "photographicSpec">) {
@@ -83,7 +76,7 @@ function PromptsPanel({ prompts, photographicSpec }: Pick<ExportTabsProps, "prom
             role="radio"
             aria-checked={platform === key}
             onClick={() => setPlatform(key)}
-            className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+            className={`border px-3 py-1 text-xs font-medium transition-colors ${
               platform === key
                 ? "border-violet-300 bg-violet-50 text-violet-700"
                 : "border-stone-200 text-stone-600 hover:border-stone-300"
@@ -138,7 +131,7 @@ function TokensPanel({ colors }: Pick<ExportTabsProps, "colors">) {
               aria-checked={version === key}
               onClick={() => setVersion(key)}
               className={`rounded-md px-2.5 py-1 font-medium ${
-                version === key ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"
+                version === key ? "bg-white text-stone-900" : "text-stone-500"
               }`}
             >
               {key === "v4" ? "Tailwind v4 (@theme)" : "Tailwind v3 (config)"}
@@ -164,29 +157,37 @@ function StockPanel({ stock }: Pick<ExportTabsProps, "stock">) {
   return (
     <div className="space-y-4">
       {csvEntries && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-violet-50/60 p-3 text-xs text-stone-600">
-          <span>{t.exports.csvHint}</span>
-          <button
-            type="button"
-            onClick={() =>
-              downloadText(
-                toAdobeStockCsv(csvEntries),
-                `auralens-adobe-stock-${new Date().toISOString().slice(0, 10)}.csv`,
-                "text/csv;charset=utf-8"
-              )
-            }
-            className="rounded-lg bg-violet-100/70 px-3 py-1.5 font-medium text-violet-700 hover:bg-violet-100"
-          >
-            {t.exports.csvButton}
-          </button>
+        <div className="space-y-2 rounded-xl bg-violet-50/60 p-3 text-xs text-stone-600">
+          <p>{t.exports.csvHint}</p>
+          <div className="flex flex-wrap gap-2">
+            {CSV_PORTALS.map((portal) => (
+              <button
+                key={portal}
+                type="button"
+                onClick={() =>
+                  downloadBlob(
+                    toPortalCsv(portal, csvEntries),
+                    `auralens-${portal}-${todayStamp()}.csv`,
+                    "text/csv;charset=utf-8"
+                  )
+                }
+                className="rounded-lg bg-violet-100/70 px-3 py-1.5 font-medium text-violet-700 hover:bg-violet-100"
+              >
+                {t.exports.csvButtons[portal]}
+              </button>
+            ))}
+          </div>
+          <p className="text-stone-500">{t.exports.csvCategoryHint}</p>
         </div>
       )}
+
+      <EmbedMetadataPanel entries={stock} />
 
       {stock.map((entry) => (
         <div key={entry.label} className="space-y-2 rounded-xl border border-stone-200 p-3 text-xs">
           <div className="flex flex-wrap items-center gap-2">
             {stock.length > 1 && <span className="font-medium text-stone-900">{entry.label}</span>}
-            <span className="rounded-full bg-violet-100/70 px-2 py-0.5 text-violet-700">
+            <span className="bg-violet-100/70 px-2 py-0.5 text-violet-700">
               {t.labels.categories[entry.stock.category]}
             </span>
           </div>
@@ -223,6 +224,7 @@ function StockPanel({ stock }: Pick<ExportTabsProps, "stock">) {
       <p className="text-xs text-stone-500">
         {t.exports.topKeywordsHint}
       </p>
+      <p className="text-xs text-stone-500">{t.exports.otherPortalsHint}</p>
     </div>
   );
 }
@@ -253,9 +255,9 @@ export function ExportTabs({ prompts, colors, stock, photographicSpec }: ExportT
   };
 
   return (
-    <section className="rounded-3xl border border-stone-200 bg-white shadow-sm">
+    <section className="border border-hairline bg-panel">
       <div className="flex flex-wrap items-center justify-between gap-x-3 border-b border-stone-200 px-4 pt-4 sm:px-6">
-        <h2 className="pb-3 text-sm font-semibold uppercase tracking-wider text-violet-700">{t.exports.heading}</h2>
+        <h2 className="pb-3 text-sm uppercase tracking-wider text-violet-700">{t.exports.heading}</h2>
         <div role="tablist" aria-label={t.exports.heading} className="flex gap-1">
           {TABS.map((tab, i) => (
             <button

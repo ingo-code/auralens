@@ -5,6 +5,7 @@ import { AnalysisReport } from "@/components/AnalysisReport";
 import { AnalysisProgress } from "@/components/analysis/AnalysisProgress";
 import { AnalysisFailedNotice, RequestErrorNotice } from "@/components/analysis/JobNotices";
 import { SeriesResults } from "@/components/series/SeriesResults";
+import { ReportActions } from "@/components/exports/ReportActions";
 import type { AnalysisResource } from "@/lib/api/resources";
 import { imageReportOf, seriesResultOf } from "@/lib/analysis-view";
 import { useAnalysisJob } from "@/lib/use-analysis-job";
@@ -33,7 +34,12 @@ export function AnalysisDetailView({ initial }: { initial: AnalysisResource }) {
   }
 
   const series = seriesResultOf(analysis);
-  if (series) return <SeriesResults result={series} previewUrls={[]} />;
-  const report = imageReportOf(analysis);
-  return report ? <AnalysisReport report={report} /> : null;
+  const report = series ? null : imageReportOf(analysis);
+  if (!series && !report) return null;
+  return (
+    <div className="space-y-6">
+      <ReportActions analysis={analysis} canShare />
+      {series ? <SeriesResults result={series} previewUrls={[]} /> : report && <AnalysisReport report={report} measurements={analysis.files[0]?.measurements} />}
+    </div>
+  );
 }

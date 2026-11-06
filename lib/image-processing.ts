@@ -1,4 +1,6 @@
 import sharp from "sharp";
+import type { ImageMeasurements } from "@/lib/measure/image-metrics";
+import { measureImageBuffer } from "@/lib/measure/server";
 
 // Keeps the longest edge within Claude's recommended vision input size,
 // which avoids internal tiling and cuts input tokens for large photos.
@@ -11,6 +13,8 @@ export type ProcessedImage = {
   /** Dimensions of the original upload (EXIF rotation applied), before downscaling. */
   originalWidth: number;
   originalHeight: number;
+  /** Pixel measurements of the upload; absent if measuring failed (the analysis still runs). */
+  measurements?: ImageMeasurements;
 };
 
 /**
@@ -22,7 +26,8 @@ export async function compressImageForAnalysis(buffer: Buffer): Promise<Processe
   const image = sharp(buffer);
   const { autoOrient } = await image.metadata();
 
-  const data = await image
+  const [data, measurements] = await Promise.all([
+    image
     .rotate() // apply EXIF orientation before the metadata is stripped
     .resize({
       width: MAX_DIMENSION,
@@ -31,10 +36,17 @@ export async function compressImageForAnalysis(buffer: Buffer): Promise<Processe
       withoutEnlargement: true,
     })
     .jpeg({ quality: JPEG_QUALITY })
-    .toBuffer();
+      .toBuffer(),
+    // Measured on the original (not the compressed copy for Claude), see lib/measure.
+    measureImageBuffer(buffer).catch((error: unknown) => {
+      console.error("[image-processing] Messung fehlgeschlagen:", error);
+      return undefined;
+    }),
+  ]);
 
   return {
     data,
+    measurements,
     mediaType: "image/jpeg",
     originalWidth: autoOrient.width,
     originalHeight: autoOrient.height,

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { ApiKeysManager } from "@/components/api/ApiKeysManager";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { DashboardNav } from "@/components/DashboardNav";
+import { SiteHeader } from "@/components/SiteHeader";
 import { getMessages } from "@/lib/i18n";
 import { getRequestLocale } from "@/lib/i18n/server";
 import { createClient } from "@/lib/supabase/server";
@@ -23,24 +23,14 @@ export default async function ApiSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen px-6 py-12 text-stone-900">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <Link href="/" className="text-lg font-semibold tracking-tight">
-              Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span>
-            </Link>
-            <h1 className="mt-3 text-3xl font-semibold tracking-tight">{t.apiKeys.title}</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <LanguageSwitcher />
-            <Link href="/dashboard" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
-              {t.apiKeys.back}
-            </Link>
-          </div>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-8">
+        <DashboardNav title={t.apiKeys.title} />
+        <div className="max-w-3xl">
+          <ApiKeysManager />
         </div>
-        <ApiKeysManager />
-      </div>
+      </main>
     </div>
   );
 }

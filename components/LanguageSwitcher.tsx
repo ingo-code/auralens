@@ -8,7 +8,7 @@ export function LanguageSwitcher() {
   const setLocale = useSetLocale();
 
   return (
-    <div role="radiogroup" aria-label={t.common.languageSwitcher} className="flex rounded-full bg-stone-100 p-0.5 text-xs">
+    <div role="radiogroup" aria-label={t.common.languageSwitcher} className="flex border border-hairline bg-room p-0.5 font-mono text-[11px]">
       {LOCALES.map((code) => (
         <button
           key={code}
@@ -18,8 +18,8 @@ export function LanguageSwitcher() {
           aria-label={LOCALE_NAMES[code]}
           lang={code}
           onClick={() => locale !== code && setLocale(code)}
-          className={`rounded-full px-2.5 py-1 font-medium uppercase transition-colors ${
-            locale === code ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
+          className={`px-2.5 py-1 font-medium uppercase transition-colors ${
+            locale === code ? "bg-signal text-on-signal" : "text-ink-muted hover:text-ink"
           }`}
         >
           {code}

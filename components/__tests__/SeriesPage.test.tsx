@@ -6,7 +6,10 @@ import type { AnalysisResource } from "@/lib/api/resources";
 import { _resetCreditsStore } from "@/lib/credits-store";
 import { buildSeries, SAMPLE_SPECS } from "@/lib/__tests__/fixtures/series";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }) }));
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn(), push: vi.fn() }),
+  usePathname: () => "/serie",
+}));
 vi.mock("@/lib/supabase/client", () => ({
   createClient: () => ({
     auth: {

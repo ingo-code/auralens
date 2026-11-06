@@ -114,7 +114,7 @@ export function ApiKeysManager() {
         </p>
       )}
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+      <section className="border border-hairline bg-panel p-6">
         <h2 className="text-sm font-medium text-stone-500">{tk.creditsHeading}</h2>
         <p className="mt-2 text-4xl font-semibold tracking-tight" data-testid="credit-balance">
           {balance ?? "…"}
@@ -122,8 +122,8 @@ export function ApiKeysManager() {
         <p className="mt-2 text-sm text-stone-500">{tk.creditsUnit}</p>
       </section>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">{tk.keysHeading}</h2>
+      <section className="border border-hairline bg-panel p-6">
+        <h2 className="text-lg">{tk.keysHeading}</h2>
         <p className="mt-1 text-sm text-stone-500">{tk.keysIntro}</p>
 
         <form onSubmit={handleCreate} className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-end">
@@ -152,7 +152,7 @@ export function ApiKeysManager() {
           <button
             type="submit"
             disabled={creating || name.trim().length === 0}
-            className="rounded-xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-4 py-2 text-sm font-medium text-white shadow-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="rounded-xl bg-signal px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {creating ? tk.creating : tk.create}
           </button>
@@ -169,7 +169,7 @@ export function ApiKeysManager() {
               <button
                 type="button"
                 onClick={copyNewKey}
-                className="rounded-lg bg-stone-900 px-3 py-2 text-sm text-white transition-colors hover:bg-stone-700"
+                className="border border-stone-300 bg-panel-high px-3 py-2 text-sm text-ink transition-colors hover:bg-stone-300"
               >
                 {copied ? t.common.copied : t.common.copy}
               </button>
@@ -206,10 +206,10 @@ export function ApiKeysManager() {
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-semibold">{tk.quickstartHeading}</h2>
+      <section className="border border-hairline bg-panel p-6">
+        <h2 className="text-lg">{tk.quickstartHeading}</h2>
         <p className="mt-1 text-sm text-stone-500">{tk.quickstartIntro}</p>
-        <pre className="mt-3 overflow-x-auto rounded-xl bg-stone-900 p-4 text-xs leading-relaxed text-stone-100">
+        <pre className="mt-3 overflow-x-auto border border-hairline bg-room-deep p-4 font-mono text-xs leading-relaxed text-ink">
           {quickstart}
         </pre>
       </section>

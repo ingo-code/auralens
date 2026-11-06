@@ -1,8 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { AnalysisDetailView } from "@/components/analysis/AnalysisDetailView";
-import { CreditBadge } from "@/components/CreditBadge";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { SiteHeader } from "@/components/SiteHeader";
 import { isUuid } from "@/lib/api/handler";
 import { failStaleJobs, type AnalysisJobRow } from "@/lib/api/repository";
 import { toAnalysisResource } from "@/lib/api/resources";
@@ -42,31 +41,25 @@ export default async function AnalysisDetailPage({ params }: { params: Promise<{
     .maybeSingle<AnalysisJobRow>();
   if (!row) notFound();
 
-  const analysis = toAnalysisResource(row, t, { includeReport: true });
+  const analysis = toAnalysisResource(row, t, { includeReport: true, includeShare: true });
 
   return (
-    <div className="min-h-screen px-6 py-12 text-stone-900">
-      <div className="mx-auto max-w-5xl">
-        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <Link href="/dashboard" className="text-sm text-stone-500 transition-colors hover:text-stone-900">
-              {t.dashboard.back}
-            </Link>
-            <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-stone-500">
-              <span className="rounded-full bg-violet-50 px-2.5 py-0.5 text-xs font-medium text-violet-700">
-                {analysis.type === "series" ? t.dashboard.seriesBadge(analysis.imageCount) : t.dashboard.imageBadge}
-              </span>
-              <span>{t.dashboard.created(new Date(analysis.createdAt).toLocaleString(INTL_LOCALES[locale]))}</span>
-              <span>· {t.dashboard.credits(analysis.credits)}</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            <CreditBadge />
-            <LanguageSwitcher />
-          </div>
+    <div className="flex min-h-screen flex-col">
+      <SiteHeader />
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-8">
+        <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] text-ink-muted">
+          <Link href="/dashboard" className="text-ink transition-colors hover:text-signal-soft">
+            {t.dashboard.back}
+          </Link>
+          <span className="text-stone-300">/</span>
+          <span className="bg-panel-high px-2 py-0.5 uppercase tracking-wider text-signal-soft">
+            {analysis.type === "series" ? t.dashboard.seriesBadge(analysis.imageCount) : t.dashboard.imageBadge}
+          </span>
+          <span>{t.dashboard.created(new Date(analysis.createdAt).toLocaleString(INTL_LOCALES[locale]))}</span>
+          <span>· {t.dashboard.credits(analysis.credits)}</span>
         </div>
         <AnalysisDetailView initial={analysis} />
-      </div>
+      </main>
     </div>
   );
 }

@@ -207,23 +207,40 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen flex-col items-center justify-center px-6 text-stone-900">
-      <Link
-        href="/"
-        className="absolute left-6 top-6 text-sm text-stone-500 transition-colors hover:text-stone-900"
-      >
-        {t.login.back}
-      </Link>
-      <div className="absolute right-6 top-6">
-        <LanguageSwitcher />
-      </div>
-      <div className="w-full max-w-sm space-y-6 rounded-3xl border border-stone-200 bg-white/90 p-8 shadow-xl shadow-violet-500/5 backdrop-blur">
-        <div className="text-center">
-          <p className="text-xl font-semibold tracking-tight">Aura<span className="bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent">Lens</span></p>
-          <h1 className="mt-3 text-lg font-medium text-stone-700">
-            {mode === "signin" ? t.login.signIn : t.login.signUp}
-          </h1>
+    <div className="grid min-h-screen lg:grid-cols-2">
+      {/* Editorial side panel - text only, no sample imagery */}
+      <aside className="hidden flex-col justify-between border-r border-hairline bg-room-deep p-10 lg:flex">
+        <Link href="/" className="flex items-center gap-2.5 text-ink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="h-6 w-6 text-signal" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="4" />
+            <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+          </svg>
+          <span className="font-semibold tracking-tight">AuraLens</span>
+        </Link>
+        <div className="max-w-md space-y-4">
+          <span className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.14em] text-signal-soft">
+            <span className="inline-block h-2 w-2 bg-signal" aria-hidden="true" />
+            {t.home.eyebrow}
+          </span>
+          <p className="font-display text-5xl leading-[1.06] text-ink">{t.home.title}</p>
+          <p className="text-sm leading-relaxed text-ink-muted">{t.home.intro}</p>
         </div>
+        <p className="font-mono text-[10px] uppercase tracking-wider text-ink-muted">{t.home.tickerBeta}</p>
+      </aside>
+
+      <div className="relative flex flex-col items-center justify-center px-4 py-20 sm:px-8">
+        <Link href="/" className="absolute left-4 top-6 font-mono text-xs text-ink-muted transition-colors hover:text-ink sm:left-8">
+          {t.login.back}
+        </Link>
+        <div className="absolute right-4 top-6 sm:right-8">
+          <LanguageSwitcher />
+        </div>
+        <div className="w-full max-w-sm space-y-6 border border-hairline bg-panel p-8">
+          <div className="space-y-1">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-muted">AuraLens</span>
+            <h1 className="text-3xl text-ink">{mode === "signin" ? t.login.signIn : t.login.signUp}</h1>
+          </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -236,7 +253,7 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+              className="w-full border border-stone-300 bg-room-deep px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
             />
           </div>
           <div>
@@ -250,7 +267,7 @@ export default function LoginPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+              className="w-full border border-stone-300 bg-room-deep px-3 py-2.5 text-sm text-stone-900 outline-none transition focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
             />
           </div>
 
@@ -268,7 +285,7 @@ export default function LoginPage() {
                 placeholder={t.login.inviteCodePlaceholder}
                 value={inviteCode}
                 onChange={(e) => setInviteCode(e.target.value)}
-                className="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 font-mono text-sm uppercase text-stone-900 outline-none transition placeholder:normal-case placeholder:text-stone-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10"
+                className="w-full border border-stone-300 bg-room-deep px-3 py-2.5 font-mono text-sm uppercase text-stone-900 outline-none transition placeholder:normal-case placeholder:text-stone-400 focus:border-violet-500 focus:ring-1 focus:ring-violet-500"
               />
               <p className="mt-1 text-xs text-stone-500">{t.legal.closedBeta}</p>
             </div>
@@ -328,7 +345,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl px-4 py-2.5 text-sm font-medium bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white shadow-md shadow-violet-500/20 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full px-4 py-2.5 text-sm font-semibold uppercase tracking-wide bg-signal text-on-signal transition-colors hover:bg-signal-soft disabled:cursor-not-allowed disabled:opacity-50"
           >
             {loading ? t.login.wait : mode === "signin" ? t.login.signIn : t.login.register}
           </button>
@@ -344,7 +361,7 @@ export default function LoginPage() {
             type="button"
             onClick={handleGoogle}
             disabled={loading || (mode === "signup" && (!acceptedTerms || !acceptedNotice || !inviteCode.trim()))}
-            className="flex w-full items-center justify-center gap-2 rounded-xl border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 shadow-sm transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
+            className="flex w-full items-center justify-center gap-2 border border-stone-300 bg-white px-4 py-2.5 text-sm font-medium text-stone-700 transition hover:bg-stone-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4">
               <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.24 1.4-1.7 4.1-5.5 4.1-3.3 0-6-2.7-6-6.1s2.7-6.1 6-6.1c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.8 3.4 14.6 2.4 12 2.4 6.7 2.4 2.4 6.7 2.4 12s4.3 9.6 9.6 9.6c5.5 0 9.2-3.9 9.2-9.4 0-.6-.07-1.1-.15-1.6H12z" />
@@ -378,6 +395,7 @@ export default function LoginPage() {
         >
           {mode === "signin" ? t.login.toSignUp : t.login.toSignIn}
         </button>
+        </div>
       </div>
     </div>
   );
