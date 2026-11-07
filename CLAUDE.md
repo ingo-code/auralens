@@ -4,7 +4,7 @@ Ein KI-gestützter visueller Stil- und Storytelling-Analyst für Fotografen und 
 ## Tech Stack
 - Frontend & Backend: Next.js (App Router), TypeScript, Tailwind CSS
 - Datenbank & Storage: Supabase
-- KI: Anthropic Claude API (Claude 3.5 Sonnet mit Vision)
+- KI: Anthropic Claude API (Vision, Structured Outputs; Modell per `ANTHROPIC_MODEL`, Default in `lib/claude/client.ts`)
 
 ## Regeln für die Entwicklung
 - Schreibe sauberen, modularen TypeScript-Code.
