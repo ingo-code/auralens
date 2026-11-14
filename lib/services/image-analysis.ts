@@ -1,7 +1,8 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { StyleAnalysisSchema, type StyleAnalysis } from "@/lib/analysis-schema";
-import { buildSystemPrompt, CLAUDE_MODEL, getClaudeClient, outputLanguage } from "@/lib/claude/client";
+import { buildSystemPrompt, CLAUDE_EFFORT, CLAUDE_MODEL, getClaudeClient, outputLanguage } from "@/lib/claude/client";
 import { AnalysisError } from "@/lib/claude/errors";
+import { logUsage, toUsageEntry, type UsageSink } from "@/lib/claude/usage";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import type { ProcessedImage } from "@/lib/image-processing";
 import { aspectRatioInstruction, closestAspectRatio } from "@/lib/prompt-engine";
@@ -25,39 +26,54 @@ const MAX_TOKENS = 8000;
  * Runs the single-image style analysis with Claude Vision. The image must
  * already be normalized (see `compressImageForAnalysis`). Throws
  * `AnalysisError` or an Anthropic SDK error - map with `mapAnalysisError`.
+ * `signal` aborts the request (deadline of the job runner); `onUsage`
+ * receives the token usage of the response.
  */
-export async function analyzeImage(image: ProcessedImage, locale: Locale = DEFAULT_LOCALE): Promise<StyleAnalysis> {
+export async function analyzeImage(
+  image: ProcessedImage,
+  locale: Locale = DEFAULT_LOCALE,
+  options: { signal?: AbortSignal; onUsage?: UsageSink } = {}
+): Promise<StyleAnalysis> {
   const aspectRatio = closestAspectRatio(image.originalWidth, image.originalHeight);
+  const startedAt = Date.now();
 
-  const response = await getClaudeClient().messages.parse({
-    model: CLAUDE_MODEL,
-    max_tokens: MAX_TOKENS,
-    system: buildSystemPrompt(locale),
-    messages: [
-      {
-        role: "user",
-        content: [
-          {
-            type: "image",
-            source: {
-              type: "base64",
-              media_type: image.mediaType,
-              data: image.data.toString("base64"),
+  const response = await getClaudeClient().messages.parse(
+    {
+      model: CLAUDE_MODEL,
+      max_tokens: MAX_TOKENS,
+      system: buildSystemPrompt(locale),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: image.mediaType,
+                data: image.data.toString("base64"),
+              },
             },
-          },
-          {
-            type: "text",
-            text:
-              `${USER_PROMPT}\n\n${aspectRatioInstruction(aspectRatio)}\n\n` +
-              `Ausgabesprache aller übrigen Texte: ${outputLanguage(locale)}.`,
-          },
-        ],
+            {
+              type: "text",
+              text:
+                `${USER_PROMPT}\n\n${aspectRatioInstruction(aspectRatio)}\n\n` +
+                `Ausgabesprache aller übrigen Texte: ${outputLanguage(locale)}.`,
+            },
+          ],
+        },
+      ],
+      output_config: {
+        format: zodOutputFormat(StyleAnalysisSchema),
+        effort: CLAUDE_EFFORT,
       },
-    ],
-    output_config: {
-      format: zodOutputFormat(StyleAnalysisSchema),
     },
-  });
+    { signal: options.signal }
+  );
+
+  const usage = toUsageEntry("image", response.model ?? CLAUDE_MODEL, response.usage, startedAt);
+  logUsage("image-analysis", usage, response.stop_reason);
+  options.onUsage?.(usage);
 
   if (!response.parsed_output) {
     throw new AnalysisError("unparsableReport", 502);

@@ -5,12 +5,13 @@ import { compressImageForAnalysis, type ProcessedImage } from "@/lib/image-proce
 import type { ConsistencyPart, MarketPart, PromptsPart } from "@/lib/series-analysis-schema";
 
 const streamMock = vi.fn();
+const createMock = vi.fn();
 
 vi.mock("@anthropic-ai/sdk", async () => {
   const actual = await vi.importActual<typeof import("@anthropic-ai/sdk")>("@anthropic-ai/sdk");
 
   class MockAnthropic {
-    messages = { stream: streamMock };
+    messages = { stream: streamMock, create: createMock };
   }
   Object.assign(MockAnthropic, {
     AuthenticationError: actual.AuthenticationError,
@@ -149,6 +150,75 @@ async function images(n: number): Promise<ProcessedImage[]> {
 describe("analyzeSeries", () => {
   beforeEach(() => {
     streamMock.mockReset();
+    createMock.mockReset();
+    createMock.mockResolvedValue({
+      model: "claude-opus-5-5",
+      stop_reason: "max_tokens",
+      content: [],
+      usage: { input_tokens: 0, output_tokens: 0, cache_creation_input_tokens: 9000, cache_read_input_tokens: 0 },
+    });
+  });
+
+  it("wärmt den Bild-Cache einmal vor und markiert das letzte Bild als Cache-Grenze", async () => {
+    mockParts(ok(buildConsistencyPart([1, 2, 3])), ok(buildMarketPart([1, 2, 3])));
+    const order: string[] = [];
+    createMock.mockImplementation(async () => {
+      order.push("prewarm");
+      return { model: "claude-opus-5-5", stop_reason: "max_tokens", content: [], usage: {} };
+    });
+    const parts = streamMock.getMockImplementation()!;
+    streamMock.mockImplementation((...args: Parameters<typeof parts>) => {
+      order.push("part");
+      return parts(...args);
+    });
+
+    await analyzeSeries(await images(3));
+
+    expect(createMock).toHaveBeenCalledTimes(1);
+    expect(order).toEqual(["prewarm", "part", "part", "part"]);
+    const [prewarm] = createMock.mock.calls[0];
+    expect(prewarm.max_tokens).toBe(0);
+    expect(prewarm.output_config).toEqual({ effort: "high" });
+    expect(prewarm.output_config.format).toBeUndefined();
+
+    for (const [params] of streamMock.mock.calls) {
+      // Same model, system and effort as the pre-warm - otherwise the cache misses.
+      expect(params.model).toBe(prewarm.model);
+      expect(params.system).toBe(prewarm.system);
+      expect(params.output_config.effort).toBe("high");
+      // The cached prefix is identical: all image blocks of the pre-warm come first.
+      expect(params.messages[0].content.slice(0, prewarm.messages[0].content.length)).toEqual(
+        prewarm.messages[0].content
+      );
+      const imageBlocks = params.messages[0].content.filter((block: { type: string }) => block.type === "image");
+      expect(imageBlocks.map((block: { cache_control?: unknown }) => block.cache_control)).toEqual([
+        undefined,
+        undefined,
+        { type: "ephemeral" },
+      ]);
+    }
+  });
+
+  it("läuft weiter, wenn das Vorwärmen scheitert", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    createMock.mockRejectedValue(new Error("overloaded"));
+    mockParts(ok(buildConsistencyPart([1, 2])), ok(buildMarketPart([1, 2])));
+
+    const report = await analyzeSeries(await images(2));
+
+    expect(report.images).toHaveLength(2);
+    expect(streamMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("meldet den Verbrauch des Vorwärmens als eigenen Teil", async () => {
+    mockParts(ok(buildConsistencyPart([1, 2])), ok(buildMarketPart([1, 2])));
+    const onUsage = vi.fn();
+
+    await analyzeSeries(await images(2), "de", undefined, { onUsage });
+
+    expect(onUsage).toHaveBeenCalledWith(
+      expect.objectContaining({ part: "cache", model: "claude-opus-5-5", cacheWriteTokens: 9000, outputTokens: 0 })
+    );
   });
 
   it("sendet alle Bilder nummeriert an alle drei Teil-Analysen und führt sie sortiert zusammen", async () => {
@@ -240,6 +310,56 @@ describe("analyzeSeries", () => {
     await expect(analyzeSeries(await images(2))).rejects.toThrow("network boom");
     expect(pendingSignals).toHaveLength(2);
     expect(pendingSignals.every((signal) => signal.aborted)).toBe(true);
+  });
+
+  it("meldet den Token-Verbrauch jedes Teils", async () => {
+    const usage = { input_tokens: 6000, output_tokens: 2300, cache_read_input_tokens: 0 };
+    mockParts(
+      { ...ok(buildConsistencyPart([1, 2])), model: "claude-opus-5", usage },
+      { ...ok(buildMarketPart([1, 2])), model: "claude-opus-5", usage },
+      { ...ok(buildPromptsPart()), model: "claude-opus-5", usage }
+    );
+    const onUsage = vi.fn();
+
+    await analyzeSeries(await images(2), "de", undefined, { onUsage });
+
+    const partUsage = onUsage.mock.calls.map(([entry]) => entry).filter((entry) => entry.part !== "cache");
+    expect(partUsage.map((entry) => entry.part).sort()).toEqual(["consistency", "market", "prompts"]);
+    expect(partUsage[0]).toMatchObject({ model: "claude-opus-5", inputTokens: 6000, outputTokens: 2300 });
+  });
+
+  it("meldet den Verbrauch auch für einen abgelehnten Teil", async () => {
+    mockParts(
+      { stop_reason: "refusal", parsed_output: null, usage: { input_tokens: 5000, output_tokens: 50 } },
+      ok(buildMarketPart([1, 2]))
+    );
+    const onUsage = vi.fn();
+
+    await expect(analyzeSeries(await images(2), "de", undefined, { onUsage })).rejects.toMatchObject({
+      messageKey: "refusal",
+    });
+    expect(onUsage).toHaveBeenCalledWith(expect.objectContaining({ part: "consistency", inputTokens: 5000 }));
+  });
+
+  it("bricht alle Teile ab, wenn das Zeitlimit des Job-Runners greift", async () => {
+    const signals: AbortSignal[] = [];
+    streamMock.mockImplementation((_params: StreamParams, options: { signal: AbortSignal }) => {
+      signals.push(options.signal);
+      return {
+        finalMessage: () =>
+          new Promise((_resolve, reject) =>
+            options.signal.addEventListener("abort", () => reject(new Error("Request was aborted.")))
+          ),
+      };
+    });
+    const deadline = new AbortController();
+
+    const run = analyzeSeries(await images(2), "de", undefined, { signal: deadline.signal });
+    await vi.waitFor(() => expect(signals).toHaveLength(3));
+    deadline.abort();
+
+    await expect(run).rejects.toThrow("aborted");
+    expect(signals.every((signal) => signal.aborted)).toBe(true);
   });
 
   it("gibt dem Prompt-Teil das Seitenverhältnis der Serie für Midjourney mit", async () => {

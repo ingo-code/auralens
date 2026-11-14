@@ -2,6 +2,7 @@ import type { PostgrestError } from "@supabase/supabase-js";
 import type { StyleAnalysis } from "@/lib/analysis-schema";
 import type { AnalysisStep } from "@/lib/analysis-steps";
 import type { AnalysisErrorCode } from "@/lib/claude/errors";
+import type { JobUsage } from "@/lib/claude/usage";
 import type { SeriesAnalysis, SeriesImageFile } from "@/lib/series-analysis-schema";
 import { removeAllUploads } from "@/lib/api/uploads";
 import { getAdminClient } from "@/lib/supabase/admin";
@@ -36,6 +37,8 @@ export type AnalysisJobRow = {
   /** Read-only share link token; null when the report is not shared. */
   share_token?: string | null;
   shared_at?: string | null;
+  /** Claude token usage of the run (operator cost tracking, see view `analysis_costs`). */
+  usage?: JobUsage | null;
 };
 
 export type ApiKeyRow = {
@@ -311,6 +314,16 @@ export async function completeJob(id: string, report: StyleAnalysis | SeriesAnal
     .select("id");
   if (error) fail("completeJob", error);
   return (data ?? []).length > 0;
+}
+
+/**
+ * Stores the token usage of a finished or failed run. Separate from
+ * completeJob/failJob, so a failed run is recorded too and the SQL refund
+ * function stays untouched.
+ */
+export async function saveJobUsage(id: string, usage: JobUsage): Promise<void> {
+  const { error } = await getAdminClient().from("analysis_jobs").update({ usage }).eq("id", id);
+  if (error) fail("saveJobUsage", error);
 }
 
 /** Records a finished processing step of a running job (live progress). */

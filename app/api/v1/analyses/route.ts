@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authenticate, type Principal } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/errors";
 import { apiRoute, enforceRateLimit, methodNotAllowed, readJsonBody, type ApiContext } from "@/lib/api/handler";
-import { enqueueAnalysis } from "@/lib/api/jobs";
+import { ANALYSIS_DEADLINE_MS, enqueueAnalysis } from "@/lib/api/jobs";
 import { API_LIMITS, API_RATE_LIMITS, secondsUntilBerlinMidnight } from "@/lib/api/limits";
 import { decodeCursor, encodeCursor } from "@/lib/api/pagination";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@/lib/api/repository";
 import { toAnalysisResource, type AnalysisResource, type ListResource } from "@/lib/api/resources";
 import { downloadUploads, isOwnUploadPath, removeUploads, UploadNotFoundError } from "@/lib/api/uploads";
+import { mapWithConcurrency } from "@/lib/concurrency";
 import { compressImageForAnalysis, type ProcessedImage } from "@/lib/image-processing";
 import { validateImageFile } from "@/lib/image-validation";
 import { describeValidationError } from "@/lib/series-api";
@@ -34,11 +35,20 @@ const MAX_BODY_SIZE = MAX_TOTAL_SIZE + 1024 * 1024;
 
 const MAX_IDEMPOTENCY_KEY_LENGTH = 255;
 
+/*
+ * Images decoded at the same time. Every image is decoded twice (Claude copy
+ * + measurement), and large PNG/WebP/TIFF files can't be shrunk while
+ * loading - 10 of them in parallel could exceed the 2 GB of a Vercel
+ * function. Two at a time keeps the peak low and is barely slower.
+ */
+const IMAGE_PROCESSING_CONCURRENCY = 2;
+
 /**
  * Starts an analysis. 1 image = single-image analysis, 2-10 = series.
  * Answers 202 immediately; poll `GET /api/v1/analyses/{id}` for the result.
  */
 export const POST = apiRoute(async (ctx) => {
+  const requestStartedAt = Date.now();
   const { t } = ctx;
   const principal = await authenticate(ctx, { scope: "analyses:write" });
   await enforceRateLimit(ctx, `v1:create:${principal.userId}`, API_RATE_LIMITS.createAnalysis);
@@ -101,7 +111,10 @@ export const POST = apiRoute(async (ctx) => {
     return handleCreationRefusal(ctx, principal, error, credits, idempotencyKey, requestHash);
   }
 
-  enqueueAnalysis({ id: job.id, type: job.type, locale: job.locale }, processed);
+  enqueueAnalysis(
+    { id: job.id, type: job.type, locale: job.locale, deadlineAt: requestStartedAt + ANALYSIS_DEADLINE_MS },
+    processed
+  );
 
   return NextResponse.json<AnalysisResource>(toAnalysisResource(job, t), {
     status: 202,
@@ -229,20 +242,14 @@ function replay(ctx: ApiContext, job: AnalysisJobRow, requestHash: string): Resp
 }
 
 async function processImages(ctx: ApiContext, buffers: Buffer[]): Promise<ProcessedImage[]> {
-  return Promise.all(
-    buffers.map(async (buffer, i) => {
-      try {
-        return await compressImageForAnalysis(buffer);
-      } catch (error) {
-        console.error(`[api] request_id=${ctx.requestId} Bild ${i + 1} nicht verarbeitbar:`, error);
-        throw new ApiError(
-          400,
-          "image_not_processable",
-          `${ctx.t.common.image(i + 1)}: ${ctx.t.errors.imageNotProcessable}`
-        );
-      }
-    })
-  );
+  return mapWithConcurrency(buffers, IMAGE_PROCESSING_CONCURRENCY, async (buffer, i) => {
+    try {
+      return await compressImageForAnalysis(buffer);
+    } catch (error) {
+      console.error(`[api] request_id=${ctx.requestId} Bild ${i + 1} nicht verarbeitbar:`, error);
+      throw new ApiError(400, "image_not_processable", `${ctx.t.common.image(i + 1)}: ${ctx.t.errors.imageNotProcessable}`);
+    }
+  });
 }
 
 async function handleCreationRefusal(

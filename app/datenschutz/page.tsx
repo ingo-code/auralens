@@ -41,7 +41,9 @@ export default function DatenschutzPage() {
       <p>
         Die Anwendung wird betrieben bei: <Filled value={legal.hosting} />. Beim Aufruf verarbeitet der Server technisch
         notwendige Daten: IP-Adresse, Zeitpunkt, aufgerufene Adresse, Browser-Kennung. AuraLens protokolliert darüber
-        hinaus Request-Kennungen, Laufzeiten und Token-Mengen der Analysen, aber keine Bildinhalte. IP-Adressen werden
+        hinaus Request-Kennungen und Laufzeiten, aber keine Bildinhalte. Zu jeder Analyse speichern wir außerdem das
+        verwendete KI-Modell, die verbrauchten Token-Mengen und die Laufzeit, um die Kosten des Beta-Tests zu
+        kontrollieren (Art. 6 Abs. 1 lit. f DSGVO; Speicherdauer wie die Analyse). IP-Adressen werden
         zur Abwehr von Missbrauch (Begrenzung der Anfragen) höchstens 10 Minuten im Arbeitsspeicher gehalten und nicht
         dauerhaft gespeichert.
       </p>
@@ -61,6 +63,14 @@ export default function DatenschutzPage() {
         Die Registrierung ist nur mit einem persönlichen Beta-Einladungscode möglich. Wir speichern, welcher Code von
         welchem Konto wann eingelöst wurde, sowie Version und Zeitpunkt deiner Bestätigung des Beta-Hinweises
         (kostenloser, nicht-kommerzieller Test; Übermittlung der Bilder an Anthropic).
+      </p>
+      <p>
+        <strong>Anmeldung mit Google:</strong> Wenn du „Mit Google anmelden“ wählst, wirst du zu Google
+        weitergeleitet (Google LLC, Mountain View, USA; in der EU: Google Ireland Limited). Google prüft dort deine
+        Anmeldung in eigener Verantwortung und übermittelt uns danach deine E-Mail-Adresse, deinen Namen und die
+        Adresse deines Profilbilds; wir speichern sie in deinem Konto. Einen Zugriff auf weitere Google-Daten erhalten
+        wir nicht. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (du wählst diesen Anmeldeweg selbst). Google ist unter
+        dem EU-US Data Privacy Framework zertifiziert. Wer das nicht möchte, registriert sich mit E-Mail-Adresse.
       </p>
       <p>
         Bei der Registrierung mit E-Mail-Adresse senden wir dir eine E-Mail mit einem Bestätigungslink; das
@@ -157,6 +167,11 @@ export default function DatenschutzPage() {
         {captcha && <li>Schutz vor Bots: Cloudflare, Inc., USA (Abschnitt 4)</li>}
       </ul>
       <p>Mit allen Dienstleistern bestehen Verträge zur Auftragsverarbeitung nach Art. 28 DSGVO.</p>
+      <p>
+        Hosting und Datenbank werden von Unternehmen mit Sitz in den USA betrieben; wo die Server stehen, steht in der
+        Liste oben. Ein Zugriff aus den USA, etwa für Wartung und Support, ist dennoch nicht ausgeschlossen. Grundlage dafür sind die EU-Standardvertragsklauseln (Art. 46 Abs. 2 lit. c DSGVO), die
+        Bestandteil der Auftragsverarbeitungsverträge beider Anbieter sind.
+      </p>
 
       <h2>8. Cookies</h2>
       <ul>

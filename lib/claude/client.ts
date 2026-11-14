@@ -1,8 +1,25 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Locale } from "@/lib/i18n/config";
 
-/** Model used for all vision analyses; override per deployment via env. */
-export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5";
+/**
+ * Model used for all vision analyses; override per deployment via env.
+ * Opus 5.5 is in the same class as Opus 5 at 20 % lower prices.
+ */
+export const CLAUDE_MODEL = process.env.ANTHROPIC_MODEL ?? "claude-opus-5-5";
+
+/**
+ * Thinking depth. Set explicitly: Opus 5.5 defaults to "medium", Opus 5 ran
+ * at "high" - keeping "high" keeps the analysis quality of Opus 5. Must be
+ * the same on every request that shares a cached prefix.
+ */
+export const CLAUDE_EFFORT = "high" as const;
+
+/**
+ * Prompt caching of the series images across the three parallel parts
+ * (see lib/services/series-analysis.ts). "off" disables it, e.g. if the
+ * stored usage shows no cache reads.
+ */
+export const PROMPT_CACHE_ENABLED = process.env.API_PROMPT_CACHE !== "off";
 
 const LANGUAGE_NAMES: Record<Locale, string> = { de: "Deutsch", en: "Englisch (English)" };
 

@@ -2,8 +2,16 @@ import type Anthropic from "@anthropic-ai/sdk";
 import type { SeriesStep } from "@/lib/analysis-steps";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
-import { buildSystemPrompt, CLAUDE_MODEL, getClaudeClient, outputLanguage } from "@/lib/claude/client";
+import {
+  buildSystemPrompt,
+  CLAUDE_EFFORT,
+  CLAUDE_MODEL,
+  getClaudeClient,
+  outputLanguage,
+  PROMPT_CACHE_ENABLED,
+} from "@/lib/claude/client";
 import { AnalysisError } from "@/lib/claude/errors";
+import { logUsage, toUsageEntry, type UsageSink } from "@/lib/claude/usage";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
 import type { ProcessedImage } from "@/lib/image-processing";
 import { measuredFactsPrompt } from "@/lib/measure/prompt-facts";
@@ -67,15 +75,56 @@ function buildPromptsPrompt(aspectRatio: string): string {
   );
 }
 
-function buildImageContent(images: ProcessedImage[]): Anthropic.ContentBlockParam[] {
+/**
+ * The numbered images - the identical start of all three part requests. With
+ * caching on, the last image carries the cache breakpoint, so system prompt +
+ * images are written to the cache once and read by every part.
+ */
+function buildImageContent(images: ProcessedImage[], cache: boolean): Anthropic.ContentBlockParam[] {
   return images.flatMap((image, i): Anthropic.ContentBlockParam[] => [
     // Explicit labels let the model reference images reliably by number.
     { type: "text", text: `Bild ${i + 1}:` },
     {
       type: "image",
       source: { type: "base64", media_type: image.mediaType, data: image.data.toString("base64") },
+      ...(cache && i === images.length - 1 ? { cache_control: { type: "ephemeral" as const } } : {}),
     },
   ]);
+}
+
+/*
+ * The three parts start at the same moment, so without help each would write
+ * its own cache entry. A `max_tokens: 0` request first writes the entry
+ * (system + images, ~1.25x input price, no output), then all three parts read
+ * it (0.05x on Opus 5.5) instead of paying the images three times.
+ * Model, system prompt, thinking and effort must match the part requests.
+ * A failed pre-warm only costs the saving - the parts still run.
+ */
+async function prewarmImageCache(
+  imageContent: Anthropic.ContentBlockParam[],
+  locale: Locale,
+  signal: AbortSignal,
+  onUsage?: UsageSink
+): Promise<void> {
+  const startedAt = Date.now();
+  try {
+    const message = await getClaudeClient().messages.create(
+      {
+        model: CLAUDE_MODEL,
+        max_tokens: 0,
+        system: buildSystemPrompt(locale),
+        messages: [{ role: "user", content: imageContent }],
+        output_config: { effort: CLAUDE_EFFORT },
+      },
+      { signal }
+    );
+    const usage = toUsageEntry("cache", message.model ?? CLAUDE_MODEL, message.usage, startedAt);
+    logUsage("series-analysis", usage, message.stop_reason);
+    onUsage?.(usage);
+  } catch (error) {
+    if (signal.aborted) throw error;
+    console.error("[series-analysis] Cache-Vorwärmen fehlgeschlagen, Analyse läuft ohne Cache weiter:", error);
+  }
 }
 
 async function requestPart<T extends z.ZodType>(
@@ -84,7 +133,8 @@ async function requestPart<T extends z.ZodType>(
   prompt: string,
   schema: T,
   locale: Locale,
-  signal: AbortSignal
+  signal: AbortSignal,
+  onUsage?: UsageSink
 ): Promise<z.infer<T>> {
   const startedAt = Date.now();
   const stream = getClaudeClient().messages.stream(
@@ -101,19 +151,17 @@ async function requestPart<T extends z.ZodType>(
           ],
         },
       ],
-      output_config: { format: zodOutputFormat(schema) },
+      output_config: { format: zodOutputFormat(schema), effort: CLAUDE_EFFORT },
     },
     { signal }
   );
 
   const message = await stream.finalMessage();
 
-  // One line per part keeps cost and latency observable in production logs.
-  console.info(
-    `[series-analysis] part=${part} stop=${message.stop_reason} ` +
-      `input_tokens=${message.usage?.input_tokens} output_tokens=${message.usage?.output_tokens} ` +
-      `ms=${Date.now() - startedAt}`
-  );
+  // Recorded before the checks below: refused or truncated answers are billed too.
+  const usage = toUsageEntry(part, message.model ?? CLAUDE_MODEL, message.usage, startedAt);
+  logUsage("series-analysis", usage, message.stop_reason);
+  onUsage?.(usage);
 
   if (message.stop_reason === "refusal") {
     throw new AnalysisError("refusal", 422);
@@ -178,15 +226,21 @@ export function mergeSeriesParts(
  * for why). Images
  * must already be normalized (see `compressImageForAnalysis`) and are
  * referenced as "Bild 1..n" in upload order. `onPartComplete` fires as each
- * part finishes, for live progress; it must not throw.
+ * part finishes, for live progress; it must not throw. `signal` aborts all
+ * parts (deadline of the job runner); `onUsage` receives the token usage of
+ * every finished part.
  */
 export async function analyzeSeries(
   images: ProcessedImage[],
   locale: Locale = DEFAULT_LOCALE,
-  onPartComplete?: (part: SeriesStep) => void
+  onPartComplete?: (part: SeriesStep) => void,
+  options: { signal?: AbortSignal; onUsage?: UsageSink } = {}
 ): Promise<SeriesAnalysis> {
-  const imageContent = buildImageContent(images);
+  const imageContent = buildImageContent(images, PROMPT_CACHE_ENABLED);
   const controller = new AbortController();
+  const signal = options.signal ? AbortSignal.any([controller.signal, options.signal]) : controller.signal;
+
+  if (PROMPT_CACHE_ENABLED) await prewarmImageCache(imageContent, locale, signal, options.onUsage);
 
   // If one part fails the report is useless, so stop paying for the others.
   const track = <T>(part: SeriesStep, promise: Promise<T>) =>
@@ -212,9 +266,20 @@ export async function analyzeSeries(
   const [consistency, market, prompts] = await Promise.all([
     track(
       "consistency",
-      requestPart("consistency", imageContent, consistencyPrompt, ConsistencyPartSchema, locale, controller.signal)
+      requestPart(
+        "consistency",
+        imageContent,
+        consistencyPrompt,
+        ConsistencyPartSchema,
+        locale,
+        signal,
+        options.onUsage
+      )
     ),
-    track("market", requestPart("market", imageContent, MARKET_PROMPT, MarketPartSchema, locale, controller.signal)),
+    track(
+      "market",
+      requestPart("market", imageContent, MARKET_PROMPT, MarketPartSchema, locale, signal, options.onUsage)
+    ),
     track(
       "prompts",
       requestPart(
@@ -223,7 +288,8 @@ export async function analyzeSeries(
         buildPromptsPrompt(aspectRatio),
         PromptsPartSchema,
         locale,
-        controller.signal
+        signal,
+        options.onUsage
       )
     ),
   ]);
