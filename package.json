@@ -10,6 +10,7 @@
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "eval:series": "vitest run -c vitest.eval.config.mts",
     "invite-codes": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/create-invite-codes.mjs"
   },
   "dependencies": {

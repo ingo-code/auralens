@@ -24,6 +24,8 @@ vi.mock("@anthropic-ai/sdk", async () => {
   return { ...actual, default: MockAnthropic };
 });
 
+// Image caching is opt-in; these tests cover it switched on.
+process.env.API_PROMPT_CACHE = "on";
 const { analyzeSeries } = await import("@/lib/services/series-analysis");
 
 // 1x1 transparent PNG - tiny but valid input for sharp to process.
@@ -360,6 +362,26 @@ describe("analyzeSeries", () => {
 
     await expect(run).rejects.toThrow("aborted");
     expect(signals.every((signal) => signal.aborted)).toBe(true);
+  });
+
+  it("nutzt Modell und Effort pro Teil, wenn sie vorgegeben sind", async () => {
+    mockParts(ok(buildConsistencyPart([1, 2])), ok(buildMarketPart([1, 2])));
+
+    await analyzeSeries(await images(2), "de", undefined, {
+      settings: {
+        market: { model: "claude-sonnet-5-5", effort: "low" },
+        prompts: { model: "claude-haiku-5-5", effort: "medium" },
+      },
+    });
+
+    const byPart = Object.fromEntries(
+      streamMock.mock.calls.map(([params]) => [partOf(params), [params.model, params.output_config.effort]])
+    );
+    expect(byPart).toEqual({
+      consistency: ["claude-opus-5-5", "high"],
+      market: ["claude-sonnet-5-5", "low"],
+      prompts: ["claude-haiku-5-5", "medium"],
+    });
   });
 
   it("gibt dem Prompt-Teil das Seitenverhältnis der Serie für Midjourney mit", async () => {

@@ -1,6 +1,6 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { StyleAnalysisSchema, type StyleAnalysis } from "@/lib/analysis-schema";
-import { buildSystemPrompt, CLAUDE_EFFORT, CLAUDE_MODEL, getClaudeClient, outputLanguage } from "@/lib/claude/client";
+import { buildSystemPrompt, getClaudeClient, outputLanguage, partSettings } from "@/lib/claude/client";
 import { AnalysisError } from "@/lib/claude/errors";
 import { logUsage, toUsageEntry, type UsageSink } from "@/lib/claude/usage";
 import { DEFAULT_LOCALE, type Locale } from "@/lib/i18n/config";
@@ -36,10 +36,11 @@ export async function analyzeImage(
 ): Promise<StyleAnalysis> {
   const aspectRatio = closestAspectRatio(image.originalWidth, image.originalHeight);
   const startedAt = Date.now();
+  const { model, effort } = partSettings("image");
 
   const response = await getClaudeClient().messages.parse(
     {
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: MAX_TOKENS,
       system: buildSystemPrompt(locale),
       messages: [
@@ -65,13 +66,13 @@ export async function analyzeImage(
       ],
       output_config: {
         format: zodOutputFormat(StyleAnalysisSchema),
-        effort: CLAUDE_EFFORT,
+        effort,
       },
     },
     { signal: options.signal }
   );
 
-  const usage = toUsageEntry("image", response.model ?? CLAUDE_MODEL, response.usage, startedAt);
+  const usage = toUsageEntry("image", response.model ?? model, response.usage, startedAt);
   logUsage("image-analysis", usage, response.stop_reason);
   options.onUsage?.(usage);
 

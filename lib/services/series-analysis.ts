@@ -8,7 +8,9 @@ import {
   CLAUDE_MODEL,
   getClaudeClient,
   outputLanguage,
+  partSettings,
   PROMPT_CACHE_ENABLED,
+  type PartSettings,
 } from "@/lib/claude/client";
 import { AnalysisError } from "@/lib/claude/errors";
 import { logUsage, toUsageEntry, type UsageSink } from "@/lib/claude/usage";
@@ -128,18 +130,19 @@ async function prewarmImageCache(
 }
 
 async function requestPart<T extends z.ZodType>(
-  part: string,
+  part: SeriesStep,
   imageContent: Anthropic.ContentBlockParam[],
   prompt: string,
   schema: T,
   locale: Locale,
   signal: AbortSignal,
-  onUsage?: UsageSink
+  options: SeriesOptions
 ): Promise<z.infer<T>> {
   const startedAt = Date.now();
+  const { model, effort } = options.settings?.[part] ?? partSettings(part);
   const stream = getClaudeClient().messages.stream(
     {
-      model: CLAUDE_MODEL,
+      model,
       max_tokens: MAX_TOKENS,
       system: buildSystemPrompt(locale),
       messages: [
@@ -151,7 +154,7 @@ async function requestPart<T extends z.ZodType>(
           ],
         },
       ],
-      output_config: { format: zodOutputFormat(schema), effort: CLAUDE_EFFORT },
+      output_config: { format: zodOutputFormat(schema), effort },
     },
     { signal }
   );
@@ -159,9 +162,9 @@ async function requestPart<T extends z.ZodType>(
   const message = await stream.finalMessage();
 
   // Recorded before the checks below: refused or truncated answers are billed too.
-  const usage = toUsageEntry(part, message.model ?? CLAUDE_MODEL, message.usage, startedAt);
+  const usage = toUsageEntry(part, message.model ?? model, message.usage, startedAt);
   logUsage("series-analysis", usage, message.stop_reason);
-  onUsage?.(usage);
+  options.onUsage?.(usage);
 
   if (message.stop_reason === "refusal") {
     throw new AnalysisError("refusal", 422);
@@ -175,6 +178,15 @@ async function requestPart<T extends z.ZodType>(
 
   return message.parsed_output as z.infer<T>;
 }
+
+export type SeriesOptions = {
+  /** Aborts all parts (deadline of the job runner). */
+  signal?: AbortSignal;
+  /** Receives the token usage of every finished request. */
+  onUsage?: UsageSink;
+  /** Per-part model/effort; defaults to `partSettings` (env). Used by the cost/quality eval. */
+  settings?: Partial<Record<SeriesStep, PartSettings>>;
+};
 
 /**
  * Merges all three parts into the client-facing report and cross-checks what the
@@ -234,7 +246,7 @@ export async function analyzeSeries(
   images: ProcessedImage[],
   locale: Locale = DEFAULT_LOCALE,
   onPartComplete?: (part: SeriesStep) => void,
-  options: { signal?: AbortSignal; onUsage?: UsageSink } = {}
+  options: SeriesOptions = {}
 ): Promise<SeriesAnalysis> {
   const imageContent = buildImageContent(images, PROMPT_CACHE_ENABLED);
   const controller = new AbortController();
@@ -273,12 +285,12 @@ export async function analyzeSeries(
         ConsistencyPartSchema,
         locale,
         signal,
-        options.onUsage
+        options
       )
     ),
     track(
       "market",
-      requestPart("market", imageContent, MARKET_PROMPT, MarketPartSchema, locale, signal, options.onUsage)
+      requestPart("market", imageContent, MARKET_PROMPT, MarketPartSchema, locale, signal, options)
     ),
     track(
       "prompts",
@@ -289,7 +301,7 @@ export async function analyzeSeries(
         PromptsPartSchema,
         locale,
         signal,
-        options.onUsage
+        options
       )
     ),
   ]);
