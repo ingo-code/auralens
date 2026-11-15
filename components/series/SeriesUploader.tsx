@@ -77,6 +77,7 @@ export function SeriesUploader({ images, onAdd, onRemove, disabled = false }: Se
         <p className="text-sm text-stone-500">
           {t.series.uploaderHint(MAX_SERIES_IMAGES)}
         </p>
+        <p className="max-w-md text-xs text-ink-muted">{t.series.uploaderExportTip}</p>
       </div>
 
       {images.length > 0 && (

@@ -182,6 +182,8 @@ export const en: Messages = {
     uploaderPrompt: "Drag the images of your series here or click",
     uploaderFull: (max) => `Maximum of ${max} images reached`,
     uploaderHint: (max) => `2–${max} images · JPEG, PNG, WEBP or GIF · max. 10 MB per image, 50 MB total`,
+    uploaderExportTip:
+      "No RAW files: please export as JPEG first. A long edge of about 2500 px at quality 80 is enough – larger images are not used by the analysis anyway.",
     removeImage: (n) => `Remove image ${n}`,
     results: {
       eyebrow: (n) => `Series analysis · ${n} images`,
@@ -499,9 +501,10 @@ export const en: Messages = {
     deleteFailed: "Deletion failed.",
     selectAtLeast: (min) => `Please select at least ${min} images.`,
     selectAtMost: (max) => `At most ${max} images per series.`,
-    fileUnsupported: (n, name) => `Image ${n} (${name}): Unsupported file type. Allowed are JPEG, PNG, WEBP and GIF.`,
-    fileOver10mb: (n, name) => `Image ${n} (${name}) is larger than 10 MB.`,
-    selectionOver50mb: "The images are larger than 50 MB in total.",
+    fileUnsupported: (n, name) =>
+      `Image ${n} (${name}): Unsupported file type. Allowed are JPEG, PNG, WEBP and GIF – please export RAW files as JPEG first.`,
+    fileOver10mb: (n, name) => `Image ${n} (${name}) is larger than 10 MB. Tip: export as JPEG with a long edge of about 2500 px.`,
+    selectionOver50mb: "The images are larger than 50 MB in total. Tip: export as JPEG with a long edge of about 2500 px.",
     uploadFailed: (n) => `Image ${n} could not be uploaded. Please check your connection and try again.`,
     serverUnreachable: "The server is unreachable. Is `npm run dev` running?",
     unexpectedResponse: (status, snippet) =>

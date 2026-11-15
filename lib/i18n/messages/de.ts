@@ -197,6 +197,8 @@ export const de = {
     uploaderPrompt: "Bilder der Serie hierher ziehen oder klicken",
     uploaderFull: (max: number) => `Maximum von ${max} Bildern erreicht`,
     uploaderHint: (max: number) => `2–${max} Bilder · JPEG, PNG, WEBP oder GIF · max. 10 MB pro Bild, 50 MB gesamt`,
+    uploaderExportTip:
+      "Keine RAW-Dateien: bitte vorher als JPEG exportieren. Lange Kante ca. 2500 px und Qualität 80 reichen – größer wird für die Analyse ohnehin nicht genutzt.",
     removeImage: (n: number) => `Bild ${n} entfernen`,
     results: {
       eyebrow: (n: number) => `Serienanalyse · ${n} Bilder`,
@@ -521,9 +523,10 @@ export const de = {
     selectAtLeast: (min: number) => `Bitte mindestens ${min} Bilder auswählen.`,
     selectAtMost: (max: number) => `Maximal ${max} Bilder pro Serie.`,
     fileUnsupported: (n: number, name: string) =>
-      `Bild ${n} (${name}): Nicht unterstützter Dateityp. Erlaubt sind JPEG, PNG, WEBP und GIF.`,
-    fileOver10mb: (n: number, name: string) => `Bild ${n} (${name}) ist größer als 10 MB.`,
-    selectionOver50mb: "Die Bilder sind zusammen größer als 50 MB.",
+      `Bild ${n} (${name}): Nicht unterstützter Dateityp. Erlaubt sind JPEG, PNG, WEBP und GIF – RAW-Dateien bitte vorher als JPEG exportieren.`,
+    fileOver10mb: (n: number, name: string) =>
+      `Bild ${n} (${name}) ist größer als 10 MB. Tipp: als JPEG mit langer Kante ca. 2500 px exportieren.`,
+    selectionOver50mb: "Die Bilder sind zusammen größer als 50 MB. Tipp: als JPEG mit langer Kante ca. 2500 px exportieren.",
     uploadFailed: (n: number) => `Bild ${n} konnte nicht hochgeladen werden. Bitte prüfe deine Verbindung und versuche es erneut.`,
     serverUnreachable: "Der Server ist nicht erreichbar. Läuft `npm run dev`?",
     unexpectedResponse: (status: number, snippet: string) =>
