@@ -47,6 +47,13 @@ export default function LoginPage() {
     if (params.get("error") === "oauth") setError(t.login.oauthFailed);
     else if (params.get("error") === "invite_required") setError(t.login.inviteRequired);
     else if (params.get("confirmed") === "1") setInfo(t.login.emailConfirmed);
+    // Personal invite links (/login?code=AURALENS-BETA-…) open the sign-up
+    // form with the code filled in; the server still validates it.
+    const code = params.get("code");
+    if (code && looksLikeInviteCode(code)) {
+      setMode("signup");
+      setInviteCode(normalizeInviteCode(code));
+    }
     /* eslint-enable react-hooks/set-state-in-effect */
   }, [t]);
 

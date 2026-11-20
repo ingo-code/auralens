@@ -155,6 +155,22 @@ describe("Registrierung", () => {
   });
 });
 
+describe("Persönlicher Einladungslink", () => {
+  afterEach(() => window.history.replaceState(null, "", "/"));
+
+  it("öffnet mit ?code= direkt die Registrierung und füllt den Code vor", async () => {
+    window.history.replaceState(null, "", "/login?code=auralens-beta-2026-7kq4m9tx");
+    render(<LoginPage />);
+    expect(await screen.findByLabelText("Beta-Einladungscode")).toHaveValue(VALID_CODE);
+  });
+
+  it("ignoriert offensichtlich falsche Codes im Link", () => {
+    window.history.replaceState(null, "", "/login?code=<script>");
+    render(<LoginPage />);
+    expect(screen.queryByLabelText("Beta-Einladungscode")).not.toBeInTheDocument();
+  });
+});
+
 describe("Registrierung mit Google", () => {
   it("bleibt gesperrt, bis Code und beide Zustimmungen vorliegen", async () => {
     const user = await openSignUp();
