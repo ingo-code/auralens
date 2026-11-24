@@ -1,6 +1,6 @@
 # AuraLens
 
-**Live:** [auralens-five.vercel.app](https://auralens-five.vercel.app) · **Beispiel-Report ohne Login:** <!-- DEMO-LINK --> *folgt* · **Public API:** [`docs/API-v1.md`](docs/API-v1.md)
+**Live:** [auralens-five.vercel.app](https://auralens-five.vercel.app) · **Public API:** [`docs/API-v1.md`](docs/API-v1.md)
 
 ![CI](https://github.com/ingo-code/auralens/actions/workflows/ci.yml/badge.svg)
 
